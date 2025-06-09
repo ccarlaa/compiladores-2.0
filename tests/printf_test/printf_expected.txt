@@ -1,0 +1,5 @@
+inicio
+    inteiro x <- 5
+    x <- x + 3
+    escreva(x)
+fim

@@ -1,0 +1,7 @@
+build
+parser.tab.c
+lex.yy.c
+parser.tab.h
+parser_exec
+/src/main.o
+/src/conversor.o
