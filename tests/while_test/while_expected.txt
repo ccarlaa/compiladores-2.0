@@ -1,10 +1,14 @@
-algoritmo "main"
-var
-    i: inteiro <- 0
-inicio
-    enquanto (i < 5) faca
-        escreva(i)
-        i <- i + 1
-    fimenquanto
-    retorne 0
-fimalgoritmo
+programa
+{
+    funcao inicio()
+    {
+        inteiro i = 0
+
+        enquanto (i < 5)
+        {
+            escreva(i)
+            i = i + 1
+        }
+        // return 0
+    }
+}

@@ -1,11 +1,17 @@
-algoritmo "main"
-var
-    x: inteiro <- 10
-inicio
-    se (x > 5) entao
-        escreva("maior")
-    senao
-        escreva("menor ou igual")
-    fimse
-    retorne 0
-fimalgoritmo
+programa
+{
+    funcao inicio()
+    {
+        inteiro x = 10
+
+        se (x > 5)
+        {
+            escreva("maior")
+        }
+        senao
+        {
+            escreva("menor ou igual")
+        }
+        // return 0
+    }
+}

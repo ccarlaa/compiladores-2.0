@@ -1,7 +1,10 @@
-algoritmo "main"
-var
-    x: inteiro <- 5
-inicio
-    x <- x + 3
-    escreva(x)
-fimalgoritmo
+programa
+{
+    funcao inicio()
+    {
+        inteiro x = 5
+
+        x = x + 3
+        escreva(x)
+    }
+}

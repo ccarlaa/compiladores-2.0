@@ -13,6 +13,11 @@ SRC_DIR=src
 LEXER_DIR=lexer
 PARSER_DIR=parser
 BUILD_DIR=build
+BASH_DIR=bash
+
+# --- ADIÇÃO 1: Variável para encontrar os scripts de teste ---
+# Encontra todos os scripts de teste na pasta bash
+TEST_SCRIPTS := $(wildcard $(BASH_DIR)/*.sh)
 
 # Arquivos fonte C
 C_SOURCES=$(wildcard $(SRC_DIR)/*.c)
@@ -55,7 +60,6 @@ $(LEX_GENERATED_C): $(LEX_SOURCE) | $(BUILD_DIR)
 	$(LEX) -o $@ $<
 
 # Regra para gerar os arquivos .c e .h do Bison.
-# Note que a linha 'mv' foi REMOVIDA.
 $(YACC_GENERATED_C) $(YACC_GENERATED_H): $(YACC_SOURCE) | $(BUILD_DIR)
 	$(YACC) -d -o $(YACC_GENERATED_C) $<
 
@@ -64,8 +68,19 @@ $(YACC_GENERATED_C) $(YACC_GENERATED_H): $(YACC_SOURCE) | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
+# --- ADIÇÃO 2: Regra para rodar todos os testes ---
+# Garante que o compilador está atualizado e depois roda os scripts
+test: $(TARGET)
+	@echo "Iniciando bateria de testes com o compilador atualizado..."
+	@for script in $(TEST_SCRIPTS); do \
+	    echo "--- Executando $$script ---"; \
+	    bash $$script; \
+	done
+	@echo "Bateria de testes finalizada."
+
+# --- ADIÇÃO 3: Adicionar 'test' aos alvos que não são arquivos ---
 # Alvo para limpar os arquivos gerados
-.PHONY: all clean
+.PHONY: all clean test
 clean:
 	@echo "Limpando arquivos gerados..."
 	rm -f $(TARGET)

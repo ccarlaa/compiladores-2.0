@@ -1,14 +1,14 @@
-algoritmo "main"
+programa
+{
+    funcao inicio()
+    {
+        real pi = 3.14
+        caractere letra = 'a'
 
-var
-    pi: real <- 3.14
-    letra: caractere <- 'a'
-
-inicio
-
-    se (pi > 3) entao
-        retorne 1
-    fimse
-
-    retorne 0
-fimalgoritmo
+        se (pi > 3)
+        {
+            // return 1
+        }
+        // return 0
+    }
+}
