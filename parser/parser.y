@@ -103,17 +103,32 @@ statements:
     | statement statements
     ;
 
-/* --- CORREÇÃO APLICADA --- */
-/* A regra 'statement' agora inclui 'assignment_statement' para permitir atribuições no corpo da função. */
 statement:
     printf_statement
     | if_statement
+    | while_statement       /* --- CORREÇÃO 1: Adicionada a opção while_statement --- */
     | return_statement
-    | assignment_statement  /* Regra de atribuição adicionada aqui */
+    | assignment_statement
     | T_SEMICOLON
     ;
 
-/* Nova regra para definir um comando de atribuição */
+/* --- CORREÇÃO 2: Adicionada a regra while_statement completa --- */
+while_statement:
+    T_WHILE T_LPAREN expression T_RPAREN
+    {
+        print_indent();
+        printf("enquanto (%s) faca\n", $3);
+        free($3);
+        indent_level++;
+    }
+    T_LBRACE statements T_RBRACE
+    {
+        indent_level--;
+        print_indent();
+        printf("fimenquanto\n");
+    }
+    ;
+
 assignment_statement:
     T_ID T_ASSIGN expression T_SEMICOLON
     {
