@@ -1,7 +1,4 @@
 %{
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * CORREÇÃO 1: Definir _GNU_SOURCE para habilitar 'asprintf' 
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +7,13 @@
 void yyerror(const char *s);
 int yylex(void);
 
+/* --- Lógica de Indentação --- */
+int indent_level = 1;
+void print_indent() {
+    for (int i = 0; i < indent_level; i++) {
+        printf("    ");
+    }
+}
 %}
 
 %union {
@@ -69,19 +73,21 @@ function_declaration:
     ;
 
 declarations:
-    %empty /* AVISO CORRIGIDO: Regra vazia explícita */
+    %empty
     | declaration declarations
     ;
 
 declaration:
-    type_specifier T_ID T_SEMICOLON 
-    { 
-        printf("    %s: %s\n", $2, $1);
+    type_specifier T_ID T_SEMICOLON
+    {
+        print_indent();
+        printf("%s: %s\n", $2, $1);
         free($1); free($2);
     }
-    | type_specifier T_ID T_ASSIGN expression T_SEMICOLON 
-    { 
-        printf("    %s: %s <- %s\n", $2, $1, $4);
+    | type_specifier T_ID T_ASSIGN expression T_SEMICOLON
+    {
+        print_indent();
+        printf("%s: %s <- %s\n", $2, $1, $4);
         free($1); free($2); free($4);
     }
     ;
@@ -93,45 +99,73 @@ type_specifier:
     ;
 
 statements:
-    %empty /* AVISO CORRIGIDO: Regra vazia explícita */
+    %empty
     | statement statements
     ;
 
+/* --- CORREÇÃO APLICADA --- */
+/* A regra 'statement' agora inclui 'assignment_statement' para permitir atribuições no corpo da função. */
 statement:
     printf_statement
     | if_statement
     | return_statement
-    | T_SEMICOLON /* Permite ponto e vírgula extra */
+    | assignment_statement  /* Regra de atribuição adicionada aqui */
+    | T_SEMICOLON
+    ;
+
+/* Nova regra para definir um comando de atribuição */
+assignment_statement:
+    T_ID T_ASSIGN expression T_SEMICOLON
+    {
+        print_indent();
+        printf("%s <- %s\n", $1, $3);
+        free($1); free($3);
+    }
     ;
 
 return_statement:
     T_RETURN expression T_SEMICOLON
     {
-        printf("    retorne %s\n", $2);
+        print_indent();
+        printf("retorne %s\n", $2);
         free($2);
     }
     ;
 
-/* --- Lógica IF-ELSE aprimorada --- */
 if_statement:
-    T_IF T_LPAREN expression T_RPAREN 
+    T_IF T_LPAREN expression T_RPAREN
         {
-            printf("    se (%s) entao\n", $3);
+            print_indent();
+            printf("se (%s) entao\n", $3);
             free($3);
+            indent_level++;
         }
     T_LBRACE statements T_RBRACE
+    {
+        indent_level--;
+    }
     else_part
     ;
 
 else_part:
-    %empty 
-        { printf("    fimse\n"); }
-    | T_ELSE T_LBRACE 
-        { printf("    senao\n"); } 
-      statements T_RBRACE 
-        { printf("    fimse\n"); }
+    %empty
+        {
+            print_indent();
+            printf("fimse\n");
+        }
+    | T_ELSE T_LBRACE
+        {
+            print_indent();
+            printf("senao\n");
+            indent_level++;
+        }
+      statements T_RBRACE
+        {
+            indent_level--;
+            print_indent();
+            printf("fimse\n");
+        }
     ;
-
 
 expression:
     T_ID            { $$ = $1; }
@@ -155,9 +189,10 @@ expression:
     ;
 
 printf_statement:
-    T_PRINTF T_LPAREN expression T_RPAREN T_SEMICOLON 
-    { 
-        printf("    escreva(%s)\n", $3); 
+    T_PRINTF T_LPAREN expression T_RPAREN T_SEMICOLON
+    {
+        print_indent();
+        printf("escreva(%s)\n", $3);
         free($3);
     }
     ;
@@ -165,6 +200,6 @@ printf_statement:
 %%
 
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro de sintaxe: %s\n", s);
+    // fprintf(stderr, "Erro de sintaxe: %s\n", s);
     exit(1);
 }

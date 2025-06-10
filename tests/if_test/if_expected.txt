@@ -1,10 +1,17 @@
-inteiro principal() {
-    real pi = 3.14;
-    caractere letra = 'a';
-    /* Isso aqui vira comentário de portugol */
+algoritmo "main"
+
+var
+    pi: real <- 3.14
+    letra: caractere <- 'a'
+
+inicio
+    // Isso aqui vira comentário de portugol
     // Isso é apenas um comentário comum
-    se (pi > 3) {
-        retorne 1;
-    }
-    retorne 0;
-}
+
+    se (pi > 3) entao
+        retorne 1
+    fimse
+
+    retorne 0
+
+fim

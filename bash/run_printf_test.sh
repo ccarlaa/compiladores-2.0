@@ -4,24 +4,25 @@
 COMPILADOR="./compilador"
 
 # Arquivos de teste
-INPUT_FILE="tests/if_test/if_test.c"
-EXPECTED_FILE="tests/if_test/if_expected.txt"
+INPUT_FILE="tests/printf_test/printf_test.c"
+EXPECTED_FILE="tests/printf_test/printf_expected.txt"
 TEMP_OUTPUT="/tmp/test_output.txt"
 
-# Verifica se o compilador existe
+# Verifica se o compilador existe antes de continuar
 if [ ! -f "$COMPILADOR" ]; then
-    echo "Erro: Compilador '$COMPILADOR' não encontrado. Compile o projeto com 'make' primeiro."
+    echo "❌ Erro: O executável '$COMPILADOR' não foi encontrado."
+    echo "   Por favor, compile o projeto com o comando 'make' primeiro."
     exit 1
 fi
 
-# Executa o compilador, redirecionando a saída para um arquivo temporário
+# Executa o compilador com o arquivo de entrada e salva a saída
 cat "$INPUT_FILE" | $COMPILADOR > "$TEMP_OUTPUT"
 
-# Compara a saída gerada com a saída esperada, ignorando diferenças de espaço em branco
+# Compara a saída gerada com a saída esperada
 if diff -w -B "$TEMP_OUTPUT" "$EXPECTED_FILE"; then
   echo "✅ Teste passou!"
-  # rm $TEMP_OUTPUT # Descomente para limpar o arquivo temporário em caso de sucesso
 else
-  echo "❌ Teste falhou! Diferenças abaixo (Esperado vs. Obtido):"
+  echo "❌ Teste falhou! Diferenças encontradas (Esperado vs. Obtido):"
+  # Mostra as diferenças lado a lado para facilitar a comparação
   diff --side-by-side -W 200 "$EXPECTED_FILE" "$TEMP_OUTPUT"
 fi
