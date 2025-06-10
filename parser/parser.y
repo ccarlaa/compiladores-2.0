@@ -33,6 +33,7 @@ void print_indent() {
 %token T_PLUS T_MINUS T_MULT T_DIV
 %token T_ASSIGN T_EQ T_NEQ T_LT T_GT T_LE T_GE
 %token T_AND T_OR T_NOT
+/* %token T_AMPERSAND  // --- REMOVIDO --- Não é mais necessário com a regra simplificada */
 
 %token T_LPAREN T_RPAREN T_LBRACE T_RBRACE T_SEMICOLON T_COMMA
 
@@ -105,14 +106,24 @@ statements:
 
 statement:
     printf_statement
+    | scanf_statement
     | if_statement
-    | while_statement       /* --- CORREÇÃO 1: Adicionada a opção while_statement --- */
+    | while_statement
     | return_statement
     | assignment_statement
     | T_SEMICOLON
     ;
 
-/* --- CORREÇÃO 2: Adicionada a regra while_statement completa --- */
+/* --- REGRA scanf SIMPLIFICADA E CORRIGIDA --- */
+scanf_statement:
+    T_SCANF T_LPAREN expression T_RPAREN T_SEMICOLON
+    {
+        print_indent();
+        printf("leia(%s)\n", $3); // Traduz diretamente para 'leia', igual ao 'printf'
+        free($3);
+    }
+    ;
+
 while_statement:
     T_WHILE T_LPAREN expression T_RPAREN
     {
@@ -147,6 +158,7 @@ return_statement:
     }
     ;
 
+/* --- REGRA if CORRIGIDA --- */
 if_statement:
     T_IF T_LPAREN expression T_RPAREN
         {
@@ -157,7 +169,7 @@ if_statement:
         }
     T_LBRACE statements T_RBRACE
     {
-        indent_level--;
+        indent_level--; // Ação de diminuir indentação movida para cá
     }
     else_part
     ;
@@ -215,6 +227,6 @@ printf_statement:
 %%
 
 void yyerror(const char *s) {
-    // fprintf(stderr, "Erro de sintaxe: %s\n", s);
+    fprintf(stderr, "Erro de sintaxe: %s\n", s);
     exit(1);
 }

@@ -1,0 +1,10 @@
+algoritmo "main"
+var
+    idade: inteiro
+inicio
+    leia(idade)
+    se (idade >= 18) entao
+        escreva("maior de idade")
+    fimse
+    retorne 0
+fimalgoritmo
