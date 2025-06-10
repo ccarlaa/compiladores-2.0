@@ -42,6 +42,17 @@ CARACTERE           \'(.|\\.)\'
 "printf"            { return T_PRINTF; }
 "scanf"             { return T_SCANF; }
 
+ /* --- NOVAS Palavras-chave --- */
+"switch"            { return T_SWITCH; }
+"case"              { return T_CASE; }
+"default"           { return T_DEFAULT; }
+"break"             { return T_BREAK; }
+"continue"          { return T_CONTINUE; }
+"do"                { return T_DO; }
+"struct"            { return T_STRUCT; }
+"const"             { return T_CONST; }
+"unsigned"          { return T_UNSIGNED; }
+
  /* --- Tipos de Dados --- */
 "int"               { return T_INT; }
 "float"             { return T_FLOAT; }
@@ -53,23 +64,32 @@ CARACTERE           \'(.|\\.)\'
 {NUMERO_INTEIRO}    { yylval.ival = atoi(yytext); return T_NUMBER_INT; }
 {NUMERO_REAL}       { yylval.fval = atof(yytext); return T_NUMBER_FLOAT; }
 {TEXTO}             { yylval.sval = dupstr(yytext); return T_STRING; }
-{CARACTERE}         { yylval.sval = dupstr(yytext); return T_CHAR_LITERAL; } /* NOVO */
+{CARACTERE}         { yylval.sval = dupstr(yytext); return T_CHAR_LITERAL; }
 
  /* --- Operadores --- */
+"++"                { return T_INC; }          /* <-- NOVO */
+"--"                { return T_DEC; }          /* <-- NOVO */
+"+="                { return T_PLUS_ASSIGN; }  /* <-- NOVO */
+"-="                { return T_MINUS_ASSIGN; } /* <-- NOVO */
+"->"                { return T_ARROW; }        /* <-- NOVO */
 "+"                 { return T_PLUS; }
 "-"                 { return T_MINUS; }
 "*"                 { return T_MULT; }
 "/"                 { return T_DIV; }
-"="                 { return T_ASSIGN; }
+"%"                 { return T_MOD; }          /* <-- NOVO */
 "=="                { return T_EQ; }
 "!="                { return T_NEQ; }
-"<"                 { return T_LT; }
-">"                 { return T_GT; }
 "<="                { return T_LE; }
 ">="                { return T_GE; }
+"<"                 { return T_LT; }
+">"                 { return T_GT; }
 "&&"                { return T_AND; }
 "||"                { return T_OR; }
+"&"                 { return T_AMPERSAND; }    /* <-- NOVO */
+"|"                 { return T_BIT_OR; }       /* <-- NOVO */
 "!"                 { return T_NOT; }
+"="                 { return T_ASSIGN; }
+
 
  /* --- Pontuação e Símbolos --- */
 "{"                 { return T_LBRACE; }
@@ -78,9 +98,11 @@ CARACTERE           \'(.|\\.)\'
 ")"                 { return T_RPAREN; }
 ";"                 { return T_SEMICOLON; }
 ","                 { return T_COMMA; }
+"."                 { return T_DOT; }          /* <-- NOVO */
+
 
  /* Ignora espaços em branco, tabs e novas linhas */
-[ \t\n\r]+          ; 
+[ \t\n\r]+          ;
 
  /* Trata qualquer outro caractere como um erro */
 .                   { fprintf(stderr, "Erro lexico: Caractere inesperado '%s'\n", yytext); }
