@@ -5,13 +5,10 @@ var
     letra: caractere <- 'a'
 
 inicio
-    // Isso aqui vira comentário de portugol
-    // Isso é apenas um comentário comum
 
     se (pi > 3) entao
         retorne 1
     fimse
 
     retorne 0
-
-fim
+fimalgoritmo
