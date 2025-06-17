@@ -1,0 +1,26 @@
+programa
+{
+    // struct Ponto {
+    //    inteiro x;
+    //    real y;
+    // }
+    // struct Linha {
+    //    // struct Ponto inicio;
+    //    // struct Ponto fim;
+    // }
+    funcao inicio()
+    {
+        // struct Ponto p1;
+        // struct Ponto *p2;
+        p1.x = 10
+        p1.y = 20.50
+        // &p1
+        p2->x = 30
+        escreva("Ponto p1: x=", p1.x, ", y=", p1.y)
+        // struct Linha l1;
+        l1.inicio.x = 1
+        l1.fim.y = 2.50
+        escreva("Linha l1: inicio.x=", l1.inicio.x, ", fim.y=", l1.fim.y)
+        // retorne 0
+    }
+}

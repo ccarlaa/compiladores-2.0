@@ -33,6 +33,8 @@ CARACTERE           \'(.|\\.)\'
 "//".* ; /* Ignora comentários de uma linha */
 "/*"([^*]|"*"+[^*/])*"*"+"/" ; /* Ignora comentários de múltiplas linhas */
 
+^#.*$ ; /* Ignora linhas de pré-processador (ex: #include, #define) */
+
  /* --- Palavras-chave --- */
 "if"                { return T_IF; }
 "else"              { return T_ELSE; }
@@ -67,16 +69,16 @@ CARACTERE           \'(.|\\.)\'
 {CARACTERE}         { yylval.sval = dupstr(yytext); return T_CHAR_LITERAL; }
 
  /* --- Operadores --- */
-"++"                { return T_INC; }          /* <-- NOVO */
-"--"                { return T_DEC; }          /* <-- NOVO */
-"+="                { return T_PLUS_ASSIGN; }  /* <-- NOVO */
-"-="                { return T_MINUS_ASSIGN; } /* <-- NOVO */
-"->"                { return T_ARROW; }        /* <-- NOVO */
+"++"                { return T_INC; }
+"--"                { return T_DEC; }
+"+="                { return T_PLUS_ASSIGN; }
+"-="                { return T_MINUS_ASSIGN; }
+"->"                { return T_ARROW; }
 "+"                 { return T_PLUS; }
 "-"                 { return T_MINUS; }
 "*"                 { return T_MULT; }
 "/"                 { return T_DIV; }
-"%"                 { return T_MOD; }          /* <-- NOVO */
+"%"                 { return T_MOD; }
 "=="                { return T_EQ; }
 "!="                { return T_NEQ; }
 "<="                { return T_LE; }
@@ -85,8 +87,8 @@ CARACTERE           \'(.|\\.)\'
 ">"                 { return T_GT; }
 "&&"                { return T_AND; }
 "||"                { return T_OR; }
-"&"                 { return T_AMPERSAND; }    /* <-- NOVO */
-"|"                 { return T_BIT_OR; }       /* <-- NOVO */
+"&"                 { return T_AMPERSAND; }
+"|"                 { return T_BIT_OR; }
 "!"                 { return T_NOT; }
 "="                 { return T_ASSIGN; }
 
@@ -98,7 +100,8 @@ CARACTERE           \'(.|\\.)\'
 ")"                 { return T_RPAREN; }
 ";"                 { return T_SEMICOLON; }
 ","                 { return T_COMMA; }
-"."                 { return T_DOT; }          /* <-- NOVO */
+"."                 { return T_DOT; }
+":"                 { return T_COLON; }
 
 
  /* Ignora espaços em branco, tabs e novas linhas */
