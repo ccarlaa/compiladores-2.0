@@ -227,6 +227,7 @@ statements:
 statement:
     printf_statement
     | scanf_statement
+    | declaration // ADDED: Permite declarações dentro de blocos de statements
     | if_statement
     | while_statement
     | do_while_statement

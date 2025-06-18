@@ -4,8 +4,8 @@
 COMPILADOR="./compilador"
 
 # Arquivos de teste
-INPUT_FILE="tests/nested_conditionals_test/nested_conditionals_test.c"
-EXPECTED_FILE="tests/nested_conditionals_test/nested_conditionals_expected.txt"
+INPUT_FILE="tests/nested_while_test/nested_while_test.c"
+EXPECTED_FILE="tests/nested_while_test/nested_while_expected.txt"
 TEMP_OUTPUT="/tmp/test_output.txt"
 
 # Verifica se o compilador existe antes de continuar
