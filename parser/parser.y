@@ -73,7 +73,7 @@ program:
     top_level_content
     {
         printf("}\n");
-        print_symbol_table(); // Para ver a tabela de simbolos
+        // print_symbol_table(); // Para ver a tabela de simbolos
         free_symbol_table();
     }
     ;
@@ -107,6 +107,8 @@ function_declaration:
     statements
     {
         indent_level--;
+        // Removed: print_indent(); printf("// retorne 0\n");
+        indent_level--;
         print_indent();
         printf("}\n");
     }
@@ -126,7 +128,7 @@ declaration:
         if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
             printf("// %s%s;\n", $1, $2);
         } else {
-            printf("%s%s\n", $1, $2);
+            printf("%s %s\n", $1, $2);
             insert_symbol($2, $1, current_scope);
         }
         free($1); free($2);
@@ -137,7 +139,7 @@ declaration:
         if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
             printf("// %s%s = %s;\n", $1, $2, $4);
         } else {
-            printf("%s%s = %s\n", $1, $2, $4);
+            printf("%s %s = %s\n", $1, $2, $4);
             insert_symbol($2, $1, current_scope);
         }
         free($1); free($2); free($4);
@@ -407,11 +409,27 @@ if_statement:
         print_indent();
         printf("}\n");
     }
-    else_part
+    elseif_chain
     ;
 
-else_part:
+elseif_chain:
     %empty
+    | T_ELSE T_IF T_LPAREN expression T_RPAREN
+        {
+            print_indent();
+            printf("senao se (%s)\n", $4);
+            free($4);
+            print_indent();
+            printf("{\n");
+            indent_level++;
+        }
+      T_LBRACE statements T_RBRACE
+        {
+            indent_level--;
+            print_indent();
+            printf("}\n");
+        }
+      elseif_chain
     | T_ELSE T_LBRACE
         {
             print_indent();
