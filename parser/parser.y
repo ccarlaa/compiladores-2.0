@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "conversor.h"
 
 void yyerror(const char *s);
 int yylex(void);
@@ -66,11 +67,14 @@ void print_indent() {
 
 program:
     {
+        init_symbol_table();
         printf("programa\n{\n");
     }
     top_level_content
     {
         printf("}\n");
+        print_symbol_table(); // Para ver a tabela de simbolos
+        free_symbol_table();
     }
     ;
 
@@ -91,11 +95,13 @@ top_level_declaration:
 function_declaration:
     type_specifier T_ID T_LPAREN T_RPAREN T_LBRACE
     {
+        insert_symbol($2, $1, 0); // Funções são globais (escopo 0)
         print_indent();
         printf("funcao inicio()\n");
         print_indent();
         printf("{\n");
         indent_level++;
+        free($1); free($2);
     }
     declarations
     statements
@@ -118,20 +124,21 @@ declaration:
         print_indent();
         // Check if the type or declarator implies a commented output (struct or pointer)
         if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
-            printf("// %s%s;\n", $1, $2); // For struct or pointer types, output as comment with semicolon
+            printf("// %s%s;\n", $1, $2);
         } else {
-            printf("%s%s\n", $1, $2); // For standard types, output as regular declaration
+            printf("%s%s\n", $1, $2);
+            insert_symbol($2, $1, current_scope);
         }
         free($1); free($2);
     }
     | type_specifier declarator T_ASSIGN expression T_SEMICOLON
     {
         print_indent();
-        // Check if the type or declarator implies a commented output (struct or pointer)
         if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
-            printf("// %s%s = %s;\n", $1, $2, $4); // For struct or pointer types, output as comment with semicolon
+            printf("// %s%s = %s;\n", $1, $2, $4);
         } else {
-            printf("%s%s = %s\n", $1, $2, $4); // For standard types, output as regular declaration
+            printf("%s%s = %s\n", $1, $2, $4);
+            insert_symbol($2, $1, current_scope);
         }
         free($1); free($2); free($4);
     }
@@ -171,6 +178,7 @@ direct_declarator:
 struct_declaration:
     T_STRUCT T_ID T_LBRACE
     {
+        insert_symbol($2, "struct", current_scope);
         print_indent();
         printf("// struct %s {\n", $2);
         free($2);
@@ -486,7 +494,10 @@ function_call_statement:
     ;
 
 expression:
-    T_ID                     { $$ = $1; }
+    T_ID                     {
+        lookup_symbol($1); /* Apenas para garantir busca, sem prints */
+        $$ = $1;
+    }
     | T_NUMBER_INT           { asprintf(&$$, "%d", $1); }
     | T_NUMBER_FLOAT         { asprintf(&$$, "%.2f", $1); }
     | T_STRING               { $$ = $1; }
