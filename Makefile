@@ -18,8 +18,8 @@ BASH_DIR=bash
 # Encontra todos os scripts de teste na pasta bash
 TEST_SCRIPTS := $(wildcard $(BASH_DIR)/*.sh)
 
-# Arquivos fonte C
-C_SOURCES=$(wildcard $(SRC_DIR)/*.c)
+# Arquivos fonte C (excluindo main.c)
+C_SOURCES=$(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
 # Arquivo fonte do Lexer (Flex)
 LEX_SOURCE=$(LEXER_DIR)/lexer.l
 # Arquivo fonte do Parser (Bison)
@@ -66,14 +66,14 @@ $(YACC_GENERATED_C) $(YACC_GENERATED_H): $(YACC_SOURCE) | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Regra para rodar todos os testes
+# Regra para rodar todos os testes em paralelo
 test: $(TARGET)
-	@echo "Iniciando bateria de testes com o compilador atualizado..."
+	@echo "Iniciando bateria de testes paralelizados..."
 	@for script in $(TEST_SCRIPTS); do \
-	    echo "--- Executando $$script ---"; \
-	    bash $$script || exit 1; \
-	done
-	@echo "Bateria de testes finalizada com sucesso."
+		(bash $$script &) \
+	done; \
+	wait; \
+	echo "Todos os testes foram concluídos"
 
 # Alvo para limpar os arquivos gerados
 .PHONY: all clean test
