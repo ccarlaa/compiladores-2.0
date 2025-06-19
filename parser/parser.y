@@ -4,26 +4,38 @@
 #include <stdlib.h>
 #include <string.h>
 #include "conversor.h"
+#include "ast.h"
 
 void yyerror(const char *s);
 int yylex(void);
 
-/* --- Lógica de Indentação --- */
-int indent_level = 1;
-void print_indent() {
-    for (int i = 0; i < indent_level; i++) {
-        printf("    ");
-    }
-}
+ASTNode *ast_root = NULL;
+int current_scope = 0;
+
+// Funções auxiliares
+ASTNode* create_declaration_node(char *type, char *name, ASTNode *init);
+ASTNode* create_assignment_node(char *op, ASTNode *lhs, ASTNode *rhs);
+ASTNode* create_binary_op(char *op, ASTNode *lhs, ASTNode *rhs);
+ASTNode* create_unary_op(char *op, ASTNode *operand);
+
+static ASTNode *func_node_temp = NULL;
+static ASTNode *body_node_temp = NULL;
+static ASTNode *if_node_temp = NULL;
+
 %}
+
+%code requires {
+    #include "ast.h"
+}
 
 %union {
     char *sval;
     int ival;
     float fval;
+    ASTNode *ast;
 }
 
-/* --- Declaração dos Tokens --- */
+/* --- Tokens --- */
 %token <sval> T_ID T_STRING T_CHAR_LITERAL
 %token <ival> T_NUMBER_INT
 %token <fval> T_NUMBER_FLOAT
@@ -31,17 +43,15 @@ void print_indent() {
 %token T_INT T_FLOAT T_CHAR T_VOID
 %token T_IF T_ELSE T_WHILE T_FOR T_RETURN T_PRINTF T_SCANF
 %token T_SWITCH T_CASE T_DEFAULT T_BREAK T_CONTINUE T_DO
-%token T_STRUCT T_CONST T_UNSIGNED
 %token T_MOD T_INC T_DEC T_PLUS_ASSIGN T_MINUS_ASSIGN
 %token T_ARROW T_DOT T_AMPERSAND T_BIT_OR
 %token T_PLUS T_MINUS T_MULT T_DIV
 %token T_ASSIGN T_EQ T_NEQ T_LT T_GT T_LE T_GE
 %token T_AND T_OR T_NOT
 %token T_LPAREN T_RPAREN T_LBRACE T_RBRACE T_SEMICOLON T_COMMA T_COLON
+%token T_CONST T_UNSIGNED
 
-/* --- Precedência dos Operadores --- */
-// Order matters for resolving shift/reduce conflicts.
-// Unary operators (NOT, INC, DEC, AMPERSAND, Pointer/Dereference) generally bind tighter.
+/* --- Precedência --- */
 %right T_ASSIGN T_PLUS_ASSIGN T_MINUS_ASSIGN
 %left T_OR
 %left T_AND
@@ -50,111 +60,117 @@ void print_indent() {
 %left T_GT T_LT T_GE T_LE
 %left T_PLUS T_MINUS
 %left T_MULT T_DIV T_MOD
-%right T_NOT T_INC T_DEC T_AMPERSAND /* Unary operators */
-%left T_DOT T_ARROW /* Member access */
-%left T_LPAREN T_RPAREN /* Function calls and grouping */
-%right '*' /* Usado para declarações de ponteiro e desreferenciação unária */
+%right T_NOT T_INC T_DEC T_AMPERSAND
+%left T_DOT T_ARROW
+%left T_LPAREN T_RPAREN
+%right '*'
 
+/* --- Tipos AST --- */
+%type <ast> function_list function_declaration declarations declaration
+%type <ast> statements statement expression assignment_statement
+%type <ast> if_statement while_statement for_statement return_statement
+%type <ast> printf_statement scanf_statement switch_statement
+%type <ast> case_list case_statement default_statement statement_list
+%type <ast> do_while_statement break_statement continue_statement
+%type <ast> increment_statement decrement_statement function_call_statement
+%type <ast> declaration_or_expression
+%type <sval> type_specifier declarator direct_declarator pointer
+%type <ast> elseif_chain
 
-/* --- Tipos para nós da gramática --- */
-%type <sval> type_specifier expression declaration_or_expression declaration assignment_statement
-%type <sval> declarator direct_declarator pointer
-%type statement_list case_list
-%type top_level_declaration top_level_declarations top_level_content
-
+%start program
 
 %%
 
 program:
     {
         init_symbol_table();
-        printf("programa\n{\n");
+        ast_root = create_node(NODE_PROGRAM, "programa");
     }
-    top_level_content
+    function_list
     {
-        printf("}\n");
-        // print_symbol_table(); // Para ver a tabela de simbolos
+        generate_portugol(ast_root);  // Gera código Portugol
+        free_ast(ast_root);
         free_symbol_table();
     }
     ;
 
-top_level_content:
-    top_level_declarations
-    function_declaration
-    ;
-
-top_level_declarations:
-    %empty
-    | top_level_declaration top_level_declarations
-    ;
-
-top_level_declaration:
-    struct_declaration
+function_list:
+    %empty 
+    {
+        $$ = create_node(NODE_EMPTY, NULL);
+    }
+    | function_list function_declaration
+    {
+        add_child(ast_root, $2);
+        $$ = $1;
+    }
     ;
 
 function_declaration:
     type_specifier T_ID T_LPAREN T_RPAREN T_LBRACE
     {
-        insert_symbol($2, $1, 0); // Funções são globais (escopo 0)
-        print_indent();
-        printf("funcao inicio()\n");
-        print_indent();
-        printf("{\n");
-        indent_level++;
-        free($1); free($2);
+        insert_symbol($2, $1, 0);
+        ASTNode *func_node = create_node(NODE_FUNCTION, $2);
+        ASTNode *type_node = create_node(NODE_TYPE, $1);
+        ASTNode *body_node = create_node(NODE_BLOCK, NULL);
+
+        add_child(func_node, type_node);
+        add_child(func_node, body_node);
+        
+        // Usar variáveis globais declaradas
+        func_node_temp = func_node;
+        body_node_temp = body_node;
     }
     declarations
     statements
-    {
-        indent_level--;
-        // Removed: print_indent(); printf("// retorne 0\n");
-        indent_level--;
-        print_indent();
-        printf("}\n");
-    }
     T_RBRACE
+    {
+        // Usa as variáveis temporárias
+        add_child(body_node_temp, $7);
+        add_child(body_node_temp, $8);
+        $$ = func_node_temp;
+        free($1); free($2);
+    }
     ;
 
 declarations:
     %empty
+    {
+        $$ = create_node(NODE_EMPTY, NULL);
+    }
     | declaration declarations
+    {
+        ASTNode *decls = create_node(NODE_DECLARATION_LIST, NULL);
+        add_child(decls, $1);
+        add_child(decls, $2);
+        $$ = decls;
+    }
     ;
 
 declaration:
     type_specifier declarator T_SEMICOLON
     {
-        print_indent();
-        // Check if the type or declarator implies a commented output (struct or pointer)
-        if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
-            printf("// %s%s;\n", $1, $2);
-        } else {
-            printf("%s %s\n", $1, $2);
-            insert_symbol($2, $1, current_scope);
-        }
+        $$ = create_declaration_node($1, $2, NULL);
+        insert_symbol($2, $1, current_scope);
         free($1); free($2);
     }
     | type_specifier declarator T_ASSIGN expression T_SEMICOLON
     {
-        print_indent();
-        if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
-            printf("// %s%s = %s;\n", $1, $2, $4);
-        } else {
-            printf("%s %s = %s\n", $1, $2, $4);
-            insert_symbol($2, $1, current_scope);
-        }
-        free($1); free($2); free($4);
+        $$ = create_declaration_node($1, $2, $4);
+        insert_symbol($2, $1, current_scope);
+        free($1); free($2);
     }
     ;
 
 declarator:
     pointer direct_declarator
     {
-        asprintf(&$$, "%s%s", $1, $2); // Combine pointer (if any) with direct declarator
+        asprintf(&$$, "%s%s", $1, $2);
         free($1); free($2);
     }
     | direct_declarator
     {
-        $$ = $1; // Just the direct declarator
+        $$ = $1;
     }
     ;
 
@@ -165,7 +181,7 @@ pointer:
     }
     | '*' pointer
     {
-        asprintf(&$$, "*%s", $2); // For multiple pointers (e.g., **)
+        asprintf(&$$, "*%s", $2);
         free($2);
     }
     ;
@@ -177,38 +193,6 @@ direct_declarator:
     }
     ;
 
-struct_declaration:
-    T_STRUCT T_ID T_LBRACE
-    {
-        insert_symbol($2, "struct", current_scope);
-        print_indent();
-        printf("// struct %s {\n", $2);
-        free($2);
-        indent_level++;
-    }
-    declarations_in_struct T_RBRACE T_SEMICOLON
-    {
-        indent_level--;
-        print_indent();
-        printf("// }\n");
-    }
-    ;
-
-declarations_in_struct:
-    %empty
-    | declaration_in_struct declarations_in_struct
-    ;
-
-declaration_in_struct:
-    type_specifier declarator T_SEMICOLON
-    {
-        print_indent();
-        // Always comment out struct members, including pointer syntax
-        printf("//    %s%s;\n", $1, $2);
-        free($1); free($2);
-    }
-    ;
-
 type_specifier:
     T_INT      { $$ = strdup("inteiro"); }
     | T_FLOAT    { $$ = strdup("real"); }
@@ -216,18 +200,26 @@ type_specifier:
     | T_VOID     { $$ = strdup("vazio"); }
     | T_CONST    { $$ = strdup("constante"); }
     | T_UNSIGNED { $$ = strdup("inteiro"); }
-    | T_STRUCT T_ID { asprintf(&$$, "// struct %s", $2); free($2); } /* Handles 'struct Name' as a type specifier */
     ;
 
 statements:
     %empty
+    {
+        $$ = create_node(NODE_EMPTY, NULL);
+    }
     | statement statements
+    {
+        ASTNode *stmts = create_node(NODE_STATEMENT_LIST, NULL);
+        add_child(stmts, $1);
+        add_child(stmts, $2);
+        $$ = stmts;
+    }
     ;
 
 statement:
     printf_statement
     | scanf_statement
-    | declaration // ADDED: Permite declarações dentro de blocos de statements
+    | declaration
     | if_statement
     | while_statement
     | do_while_statement
@@ -240,131 +232,110 @@ statement:
     | increment_statement
     | decrement_statement
     | function_call_statement
-    | T_SEMICOLON
+    | T_SEMICOLON { $$ = create_node(NODE_EMPTY, NULL); }
     ;
 
 do_while_statement:
-    T_DO
+    T_DO T_LBRACE statements T_RBRACE T_WHILE T_LPAREN expression T_RPAREN T_SEMICOLON
     {
-        print_indent();
-        printf("faca\n");
-        print_indent();
-        printf("{\n");
-        indent_level++;
-    }
-    T_LBRACE statements T_RBRACE T_WHILE T_LPAREN expression T_RPAREN T_SEMICOLON
-    {
-        indent_level--;
-        print_indent();
-        printf("} enquanto (%s)\n", $8);
-        free($8);
+        ASTNode *do_while = create_node(NODE_DO_WHILE, NULL);
+        add_child(do_while, $3); // Bloco de statements
+        add_child(do_while, $7); // Condição
+        $$ = do_while;
     }
     ;
 
 break_statement:
     T_BREAK T_SEMICOLON
     {
-        print_indent();
-        printf("pare\n");
+        $$ = create_node(NODE_BREAK, NULL);
     }
     ;
 
 continue_statement:
     T_CONTINUE T_SEMICOLON
     {
-        print_indent();
-        printf("// continue não é diretamente suportado em Portugol Studio, pulando iteração\n");
+        $$ = create_node(NODE_CONTINUE, NULL);
     }
     ;
 
 scanf_statement:
     T_SCANF T_LPAREN T_STRING T_COMMA T_AMPERSAND T_ID T_RPAREN T_SEMICOLON
     {
-        print_indent();
-        printf("leia(%s)\n", $6);
-        free($3);
-        free($6);
+        ASTNode *scanf_node = create_node(NODE_SCANF, $3);
+        add_child(scanf_node, create_node(NODE_IDENTIFIER, $6));
+        $$ = scanf_node;
+        free($3); free($6);
     }
     ;
 
 while_statement:
-    T_WHILE T_LPAREN expression T_RPAREN
+    T_WHILE T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE
     {
-        print_indent();
-        printf("enquanto (%s)\n", $3);
-        free($3);
-        print_indent();
-        printf("{\n");
-        indent_level++;
-    }
-    T_LBRACE statements T_RBRACE
-    {
-        indent_level--;
-        print_indent();
-        printf("}\n");
+        ASTNode *while_node = create_node(NODE_WHILE, NULL);
+        add_child(while_node, $3); // Condição
+        add_child(while_node, $6); // Corpo
+        $$ = while_node;
     }
     ;
 
 for_statement:
     T_FOR T_LPAREN declaration_or_expression T_SEMICOLON expression T_SEMICOLON expression T_RPAREN
-    {
-        print_indent();
-        printf("para (%s; %s; %s)\n", $3, $5, $7);
-        free($3); free($5); free($7);
-        print_indent();
-        printf("{\n");
-        indent_level++;
-    }
     T_LBRACE statements T_RBRACE
     {
-        indent_level--;
-        print_indent();
-        printf("}\n");
+        ASTNode *for_node = create_node(NODE_FOR, NULL);
+        add_child(for_node, $3); // Inicialização
+        add_child(for_node, $5); // Condição
+        add_child(for_node, $7); // Incremento
+        add_child(for_node, $10); // Corpo
+        $$ = for_node;
     }
     ;
 
 declaration_or_expression:
-    declaration            { $$ = $1; }
-    | assignment_statement { $$ = $1; }
-    | expression           { $$ = $1; }
-    | %empty               { $$ = strdup(""); }
+    declaration
+    | assignment_statement
+    | expression
+    | %empty { $$ = create_node(NODE_EMPTY, NULL); }
     ;
 
 assignment_statement:
     T_ID T_ASSIGN expression T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s\n", $1, $3);
-        asprintf(&$$, "%s = %s", $1, $3);
-        free($1); free($3);
+        $$ = create_assignment_node("=", 
+            create_node(NODE_IDENTIFIER, $1), 
+            $3);
+        free($1);
     }
     | T_ID T_PLUS_ASSIGN expression T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s + %s\n", $1, $1, $3);
-        asprintf(&$$, "%s = %s + %s", $1, $1, $3);
-        free($1); free($3);
+        ASTNode *lhs = create_node(NODE_IDENTIFIER, $1);
+        ASTNode *rhs = create_binary_op("+", lhs, $3);
+        $$ = create_assignment_node("=", lhs, rhs);
+        free($1);
     }
     | T_ID T_MINUS_ASSIGN expression T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s - %s\n", $1, $1, $3);
-        asprintf(&$$, "%s = %s - %s", $1, $1, $3);
-        free($1); free($3);
+        ASTNode *lhs = create_node(NODE_IDENTIFIER, $1);
+        ASTNode *rhs = create_binary_op("-", lhs, $3);
+        $$ = create_assignment_node("=", lhs, rhs);
+        free($1);
     }
     ;
 
 increment_statement:
     T_ID T_INC T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s + 1\n", $1, $1);
+        ASTNode *inc = create_node(NODE_UNARY_OP, "++");
+        add_child(inc, create_node(NODE_IDENTIFIER, $1));
+        $$ = inc;
         free($1);
     }
     | T_INC T_ID T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s + 1\n", $2, $2);
+        ASTNode *inc = create_node(NODE_UNARY_OP, "++");
+        add_child(inc, create_node(NODE_IDENTIFIER, $2));
+        $$ = inc;
         free($2);
     }
     ;
@@ -372,188 +343,217 @@ increment_statement:
 decrement_statement:
     T_ID T_DEC T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s - 1\n", $1, $1);
+        ASTNode *dec = create_node(NODE_UNARY_OP, "--");
+        add_child(dec, create_node(NODE_IDENTIFIER, $1));
+        $$ = dec;
         free($1);
     }
     | T_DEC T_ID T_SEMICOLON
     {
-        print_indent();
-        printf("%s = %s - 1\n", $2, $2);
+        ASTNode *dec = create_node(NODE_UNARY_OP, "--");
+        add_child(dec, create_node(NODE_IDENTIFIER, $2));
+        $$ = dec;
         free($2);
     }
     ;
-
 
 return_statement:
     T_RETURN expression T_SEMICOLON
     {
-        print_indent();
-        printf("// retorne %s\n", $2);
-        free($2);
+        ASTNode *ret = create_node(NODE_RETURN, NULL);
+        add_child(ret, $2);
+        $$ = ret;
     }
     ;
 
 if_statement:
-    T_IF T_LPAREN expression T_RPAREN
-        {
-            print_indent();
-            printf("se (%s)\n", $3);
-            free($3);
-            print_indent();
-            printf("{\n");
-            indent_level++;
-        }
-    T_LBRACE statements T_RBRACE
+    T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE
     {
-        indent_level--;
-        print_indent();
-        printf("}\n");
+        ASTNode *if_node = create_node(NODE_IF, NULL);
+        add_child(if_node, $3); // Condição
+        add_child(if_node, $6); // Then
+        if_node_temp = if_node;
     }
     elseif_chain
+    {
+        add_child(if_node_temp, $9); // Else/ElseIf
+        $$ = if_node_temp;
+    }
     ;
 
 elseif_chain:
-    %empty
-    | T_ELSE T_IF T_LPAREN expression T_RPAREN
-        {
-            print_indent();
-            printf("senao se (%s)\n", $4);
-            free($4);
-            print_indent();
-            printf("{\n");
-            indent_level++;
-        }
-      T_LBRACE statements T_RBRACE
-        {
-            indent_level--;
-            print_indent();
-            printf("}\n");
-        }
-      elseif_chain
-    | T_ELSE T_LBRACE
-        {
-            print_indent();
-            printf("senao\n");
-            print_indent();
-            printf("{\n");
-            indent_level++;
-        }
-      statements T_RBRACE
-        {
-            indent_level--;
-            print_indent();
-            printf("}\n");
-        }
+    %empty { $$ = create_node(NODE_EMPTY, NULL); }
+    | T_ELSE T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE
+    {
+        ASTNode *elseif = create_node(NODE_ELSE_IF, NULL);
+        add_child(elseif, $4); // Condição
+        add_child(elseif, $7); // Then
+        $$ = elseif;
+    }
+    | T_ELSE T_LBRACE statements T_RBRACE
+    {
+        $$ = create_node(NODE_ELSE, NULL);
+        add_child($$, $3); // Bloco else
+    }
     ;
 
 switch_statement:
-    T_SWITCH T_LPAREN expression T_RPAREN T_LBRACE
+    T_SWITCH T_LPAREN expression T_RPAREN T_LBRACE case_list T_RBRACE
     {
-        print_indent();
-        printf("escolha (%s)\n", $3);
-        free($3);
-        print_indent();
-        printf("{\n");
-        indent_level++;
-    }
-    case_list T_RBRACE
-    {
-        indent_level--;
-        print_indent();
-        printf("}\n");
+        ASTNode *switch_node = create_node(NODE_SWITCH, NULL);
+        add_child(switch_node, $3); // Expressão
+        add_child(switch_node, $6); // Casos
+        $$ = switch_node;
     }
     ;
 
 case_list:
-    %empty
+    %empty { $$ = create_node(NODE_EMPTY, NULL); }
     | case_statement case_list
+    {
+        ASTNode *cases = create_node(NODE_CASE_LIST, NULL);
+        add_child(cases, $1);
+        add_child(cases, $2);
+        $$ = cases;
+    }
     | default_statement
     ;
 
 case_statement:
-    T_CASE expression T_COLON
+    T_CASE expression T_COLON statement_list
     {
-        print_indent();
-        printf("caso %s:\n", $2);
-        free($2);
-        indent_level++;
-    }
-    statement_list
-    {
-        indent_level--;
+        ASTNode *case_node = create_node(NODE_CASE, NULL);
+        add_child(case_node, $2); // Valor
+        add_child(case_node, $4); // Statements
+        $$ = case_node;
     }
     ;
 
 default_statement:
-    T_DEFAULT T_COLON
+    T_DEFAULT T_COLON statement_list
     {
-        print_indent();
-        printf("padrao:\n");
-        indent_level++;
-    }
-    statement_list
-    {
-        indent_level--;
+        ASTNode *default_node = create_node(NODE_DEFAULT, NULL);
+        add_child(default_node, $3); // Statements
+        $$ = default_node;
     }
     ;
 
 statement_list:
-    %empty
+    %empty { $$ = create_node(NODE_EMPTY, NULL); }
     | statement statement_list
+    {
+        ASTNode *stmts = create_node(NODE_STATEMENT_LIST, NULL);
+        add_child(stmts, $1);
+        add_child(stmts, $2);
+        $$ = stmts;
+    }
     ;
 
 function_call_statement:
     T_ID T_LPAREN T_RPAREN T_SEMICOLON
     {
-        print_indent();
-        printf("chamar %s()\n", $1);
+        ASTNode *call = create_node(NODE_FUNCTION_CALL, $1);
+        $$ = call;
         free($1);
     }
     ;
 
 expression:
-    T_ID                     {
-        lookup_symbol($1); /* Apenas para garantir busca, sem prints */
-        $$ = $1;
+    T_ID                     { $$ = create_node(NODE_IDENTIFIER, $1); }
+    | T_NUMBER_INT           { 
+        char num[20]; 
+        sprintf(num, "%d", $1); 
+        $$ = create_node(NODE_CONST_INT, num); 
     }
-    | T_NUMBER_INT           { asprintf(&$$, "%d", $1); }
-    | T_NUMBER_FLOAT         { asprintf(&$$, "%.2f", $1); }
-    | T_STRING               { $$ = $1; }
-    | T_CHAR_LITERAL         { $$ = $1; }
-    | expression T_PLUS expression    { asprintf(&$$, "%s + %s", $1, $3); free($1); free($3); }
-    | expression T_MINUS expression   { asprintf(&$$, "%s - %s", $1, $3); free($1); free($3); }
-    | expression T_MULT expression    { asprintf(&$$, "%s * %s", $1, $3); free($1); free($3); }
-    | expression T_DIV expression     { asprintf(&$$, "%s / %s", $1, $3); free($1); free($3); }
-    | expression T_MOD expression     { asprintf(&$$, "%s %% %s", $1, $3); free($1); free($3); }
-    | expression T_EQ expression      { asprintf(&$$, "%s == %s", $1, $3); free($1); free($3); }
-    | expression T_NEQ expression     { asprintf(&$$, "%s != %s", $1, $3); free($1); free($3); }
-    | expression T_LT expression      { asprintf(&$$, "%s < %s", $1, $3); free($1); free($3); }
-    | expression T_GT expression      { asprintf(&$$, "%s > %s", $1, $3); free($1); free($3); }
-    | expression T_LE expression      { asprintf(&$$, "%s <= %s", $1, $3); free($1); free($3); }
-    | expression T_GE expression      { asprintf(&$$, "%s >= %s", $1, $3); free($1); free($3); }
-    | expression T_AND expression     { asprintf(&$$, "%s e %s", $1, $3); free($1); free($3); }
-    | expression T_OR expression      { asprintf(&$$, "%s ou %s", $1, $3); free($1); free($3); }
-    | expression T_BIT_OR expression  { asprintf(&$$, "%s | %s", $1, $3); free($1); free($3); }
-    | T_AMPERSAND expression          { asprintf(&$$, "&%s", $2); free($2); }
-    | T_NOT expression                { asprintf(&$$, "nao %s", $2); free($2); }
-    | T_LPAREN expression T_RPAREN    { asprintf(&$$, "(%s)", $2); free($2); }
-    | expression T_DOT T_ID           { asprintf(&$$, "%s.%s", $1, $3); free($1); free($3); }
-    | expression T_ARROW T_ID         { asprintf(&$$, "%s->%s", $1, $3); free($1); free($3); }
-    | T_ID T_LPAREN T_RPAREN          { asprintf(&$$, "%s()", $1); free($1); }
-    | '*' expression                  { asprintf(&$$, "*%s", $2); free($2); } // Dereference operator
+    | T_NUMBER_FLOAT         { 
+        char num[20]; 
+        sprintf(num, "%f", $1); 
+        $$ = create_node(NODE_CONST_FLOAT, num); 
+    }
+    | T_STRING               { $$ = create_node(NODE_CONST_STRING, $1); }
+    | T_CHAR_LITERAL         { $$ = create_node(NODE_CONST_CHAR, $1); }
+    | expression T_PLUS expression    { $$ = create_binary_op("+", $1, $3); }
+    | expression T_MINUS expression   { $$ = create_binary_op("-", $1, $3); }
+    | expression T_MULT expression    { $$ = create_binary_op("*", $1, $3); }
+    | expression T_DIV expression     { $$ = create_binary_op("/", $1, $3); }
+    | expression T_MOD expression     { $$ = create_binary_op("%", $1, $3); }
+    | expression T_EQ expression      { $$ = create_binary_op("==", $1, $3); }
+    | expression T_NEQ expression     { $$ = create_binary_op("!=", $1, $3); }
+    | expression T_LT expression      { $$ = create_binary_op("<", $1, $3); }
+    | expression T_GT expression      { $$ = create_binary_op(">", $1, $3); }
+    | expression T_LE expression      { $$ = create_binary_op("<=", $1, $3); }
+    | expression T_GE expression      { $$ = create_binary_op(">=", $1, $3); }
+    | expression T_AND expression     { $$ = create_binary_op("e", $1, $3); }
+    | expression T_OR expression      { $$ = create_binary_op("ou", $1, $3); }
+    | expression T_BIT_OR expression  { $$ = create_binary_op("|", $1, $3); }
+    | T_AMPERSAND expression         { $$ = create_unary_op("&", $2); }
+    | T_NOT expression               { $$ = create_unary_op("nao", $2); }
+    | T_LPAREN expression T_RPAREN   { $$ = $2; } // Remove parênteses
+    | expression T_DOT T_ID           { 
+        ASTNode *dot = create_node(NODE_MEMBER_ACCESS, ".");
+        add_child(dot, $1);
+        add_child(dot, create_node(NODE_IDENTIFIER, $3));
+        $$ = dot;
+        free($3);
+    }
+    | expression T_ARROW T_ID         { 
+        ASTNode *arrow = create_node(NODE_POINTER_ACCESS, "->");
+        add_child(arrow, $1);
+        add_child(arrow, create_node(NODE_IDENTIFIER, $3));
+        $$ = arrow;
+        free($3);
+    }
+    | T_ID T_LPAREN T_RPAREN          { 
+        ASTNode *call = create_node(NODE_FUNCTION_CALL, $1); 
+        $$ = call;
+        free($1);
+    }
+    | '*' expression                  { $$ = create_unary_op("*", $2); }
     ;
 
 printf_statement:
     T_PRINTF T_LPAREN expression T_RPAREN T_SEMICOLON
     {
-        print_indent();
-        printf("escreva(%s)\n", $3);
-        free($3);
+        ASTNode *printf_node = create_node(NODE_PRINTF, NULL);
+        add_child(printf_node, $3);
+        $$ = printf_node;
     }
     ;
 
 %%
+
+// Funções auxiliares
+ASTNode* create_declaration_node(char *type, char *name, ASTNode *init) {
+    ASTNode *decl = create_node(NODE_DECLARATION, name);
+    add_child(decl, create_node(NODE_TYPE, type));
+    if (init) {
+        ASTNode *assign = create_node(NODE_ASSIGNMENT, "=");
+        add_child(assign, create_node(NODE_IDENTIFIER, name));
+        add_child(assign, init);
+        add_child(decl, assign);
+    }
+    return decl;
+}
+
+ASTNode* create_assignment_node(char *op, ASTNode *lhs, ASTNode *rhs) {
+    ASTNode *assign = create_node(NODE_ASSIGNMENT, op);
+    add_child(assign, lhs);
+    add_child(assign, rhs);
+    return assign;
+}
+
+ASTNode* create_binary_op(char *op, ASTNode *lhs, ASTNode *rhs) {
+    ASTNode *binop = create_node(NODE_BINARY_OP, op);
+    add_child(binop, lhs);
+    add_child(binop, rhs);
+    return binop;
+}
+
+ASTNode* create_unary_op(char *op, ASTNode *operand) {
+    ASTNode *unop = create_node(NODE_UNARY_OP, op);
+    add_child(unop, operand);
+    return unop;
+}
 
 void yyerror(const char *s) {
     fprintf(stderr, "Erro de sintaxe: %s\n", s);

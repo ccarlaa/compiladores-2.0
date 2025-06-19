@@ -2,7 +2,8 @@
 /* * Analisador Léxico (Lexer) para um subconjunto da linguagem C.
  * Este arquivo define as "palavras" ou "tokens" que o parser irá usar.
  */
-#include "y.tab.h" // Inclui os tokens definidos pelo Bison
+#include "y.tab.h" 
+#include "ast.h"
 #include <string.h>
 
 // Função para retornar strings, evitando warnings
@@ -33,7 +34,7 @@ CARACTERE           \'(.|\\.)\'
 "//".* ; /* Ignora comentários de uma linha */
 "/*"([^*]|"*"+[^*/])*"*"+"/" ; /* Ignora comentários de múltiplas linhas */
 
-^#.*$ ; /* Ignora linhas de pré-processador (ex: #include, #define) */
+^#.* ; /* Ignora linhas de pré-processador (ex: #include, #define) */
 
  /* --- Palavras-chave --- */
 "if"                { return T_IF; }
@@ -51,15 +52,14 @@ CARACTERE           \'(.|\\.)\'
 "break"             { return T_BREAK; }
 "continue"          { return T_CONTINUE; }
 "do"                { return T_DO; }
-"struct"            { return T_STRUCT; }
-"const"             { return T_CONST; }
-"unsigned"          { return T_UNSIGNED; }
 
  /* --- Tipos de Dados --- */
 "int"               { return T_INT; }
 "float"             { return T_FLOAT; }
 "char"              { return T_CHAR; }
 "void"              { return T_VOID; }
+"const"             { return T_CONST; }
+"unsigned"          { return T_UNSIGNED; }
 
  /* --- Identificadores e Literais --- */
 {IDENTIFICADOR}     { yylval.sval = dupstr(yytext); return T_ID; }
