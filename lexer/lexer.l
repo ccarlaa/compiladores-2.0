@@ -64,7 +64,7 @@ CARACTERE           \'(.|\\.)\'
  /* --- Identificadores e Literais --- */
 {IDENTIFICADOR}     { yylval.sval = dupstr(yytext); return T_ID; }
 {NUMERO_INTEIRO}    { yylval.ival = atoi(yytext); return T_NUMBER_INT; }
-{NUMERO_REAL}       { yylval.fval = atof(yytext); return T_NUMBER_FLOAT; }
+{NUMERO_REAL}       { yylval.sval = dupstr(yytext); return T_NUMBER_FLOAT; }
 {TEXTO}             { yylval.sval = dupstr(yytext); return T_STRING; }
 {CARACTERE}         { yylval.sval = dupstr(yytext); return T_CHAR_LITERAL; }
 

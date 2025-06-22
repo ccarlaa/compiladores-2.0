@@ -171,7 +171,7 @@ void generate_portugol(ASTNode *node) {
             if (node->child_count > 0) {
                 generate_portugol(node->children[0]); // Condição
             }
-            printf(") entao\n");
+            printf(")\n");
             
             print_indent();
             printf("{\n");
@@ -274,6 +274,7 @@ void generate_portugol(ASTNode *node) {
             
         case NODE_CONST_INT:
         case NODE_CONST_FLOAT:
+            // We need to preserve the exact format of float literals (e.g. 3.14 vs 3.140000)
             printf("%s", node->value ? node->value : "0");
             break;
             
@@ -282,7 +283,8 @@ void generate_portugol(ASTNode *node) {
             break;
             
         case NODE_CONST_CHAR:
-            printf("'%s'", node->value ? node->value : " ");
+            // The node->value likely already contains the single quotes, so we don't add more
+            printf("%s", node->value ? node->value : "' '");
             break;
             
         case NODE_BINARY_OP:

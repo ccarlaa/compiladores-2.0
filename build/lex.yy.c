@@ -966,7 +966,7 @@ YY_RULE_SETUP
 case 25:
 YY_RULE_SETUP
 #line 67 "lexer/lexer.l"
-{ yylval.fval = atof(yytext); return T_NUMBER_FLOAT; }
+{ yylval.sval = dupstr(yytext); return T_NUMBER_FLOAT; }
 	YY_BREAK
 case 26:
 /* rule 26 can match eol */

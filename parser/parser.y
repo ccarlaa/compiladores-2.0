@@ -36,9 +36,8 @@ static ASTNode *if_node_temp = NULL;
 }
 
 /* --- Tokens --- */
-%token <sval> T_ID T_STRING T_CHAR_LITERAL
+%token <sval> T_ID T_STRING T_CHAR_LITERAL T_NUMBER_FLOAT
 %token <ival> T_NUMBER_INT
-%token <fval> T_NUMBER_FLOAT
 
 %token T_INT T_FLOAT T_CHAR T_VOID
 %token T_IF T_ELSE T_WHILE T_FOR T_RETURN T_PRINTF T_SCANF
@@ -466,9 +465,8 @@ expression:
         $$ = create_node(NODE_CONST_INT, num); 
     }
     | T_NUMBER_FLOAT         { 
-        char num[20]; 
-        sprintf(num, "%f", $1); 
-        $$ = create_node(NODE_CONST_FLOAT, num); 
+        // Directly use the string representation from the lexer
+        $$ = create_node(NODE_CONST_FLOAT, $1); 
     }
     | T_STRING               { $$ = create_node(NODE_CONST_STRING, $1); }
     | T_CHAR_LITERAL         { $$ = create_node(NODE_CONST_CHAR, $1); }

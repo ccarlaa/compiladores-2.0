@@ -63,8 +63,8 @@ extern int yydebug;
     T_ID = 258,                    /* T_ID  */
     T_STRING = 259,                /* T_STRING  */
     T_CHAR_LITERAL = 260,          /* T_CHAR_LITERAL  */
-    T_NUMBER_INT = 261,            /* T_NUMBER_INT  */
-    T_NUMBER_FLOAT = 262,          /* T_NUMBER_FLOAT  */
+    T_NUMBER_FLOAT = 261,          /* T_NUMBER_FLOAT  */
+    T_NUMBER_INT = 262,            /* T_NUMBER_INT  */
     T_INT = 263,                   /* T_INT  */
     T_FLOAT = 264,                 /* T_FLOAT  */
     T_CHAR = 265,                  /* T_CHAR  */
