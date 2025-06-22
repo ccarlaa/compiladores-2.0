@@ -195,7 +195,7 @@ void generate_portugol(ASTNode *node) {
             if (node->child_count > 0) {
                 generate_portugol(node->children[0]); // Condição
             }
-            printf(") faca\n");
+            printf(")\n");
             
             print_indent();
             printf("{\n");
@@ -261,7 +261,7 @@ void generate_portugol(ASTNode *node) {
             
         case NODE_RETURN:
             print_indent();
-            printf("retorne ");
+            printf("// retorne ");
             if (node->child_count > 0) {
                 generate_portugol(node->children[0]); // Valor de retorno
             }
@@ -300,9 +300,27 @@ void generate_portugol(ASTNode *node) {
             break;
             
         case NODE_UNARY_OP:
-            printf("%s", node->value ? node->value : "?");
-            if (node->child_count > 0) {
-                generate_portugol(node->children[0]); // Operando
+            // Handle unary operators
+            if (node->value && strcmp(node->value, "nao") == 0) {
+                // For 'nao' operator
+                printf("nao ");
+                
+                // Check if the operand is a binary operation that needs parentheses
+                if (node->child_count > 0) {
+                    if (node->children[0]->type == NODE_BINARY_OP) {
+                        printf("(");
+                        generate_portugol(node->children[0]); // Operando
+                        printf(")");
+                    } else {
+                        generate_portugol(node->children[0]); // Operando
+                    }
+                }
+            } else {
+                // Standard handling for other unary operators
+                printf("%s", node->value ? node->value : "?");
+                if (node->child_count > 0) {
+                    generate_portugol(node->children[0]); // Operando
+                }
             }
             break;
             

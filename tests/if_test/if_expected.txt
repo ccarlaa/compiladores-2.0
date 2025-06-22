@@ -3,12 +3,12 @@ programa
     funcao inicio()
     {
         real pi = 3.14
-        caractere letra = 'a'
+        caracter letra = 'a'
 
         se (pi > 3)
         {
-            retorne 1
+            // retorne 1
         }
-        retorne 0
+        // retorne 0
     }
 }

@@ -1557,7 +1557,7 @@ yyreduce:
 
   case 19: /* type_specifier: T_CHAR  */
 #line 198 "parser/parser.y"
-                 { (yyval.sval) = strdup("caractere"); }
+                 { (yyval.sval) = strdup("caracter"); }
 #line 1562 "build/y.tab.c"
     break;
 

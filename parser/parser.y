@@ -195,7 +195,7 @@ direct_declarator:
 type_specifier:
     T_INT      { $$ = strdup("inteiro"); }
     | T_FLOAT    { $$ = strdup("real"); }
-    | T_CHAR     { $$ = strdup("caractere"); }
+    | T_CHAR     { $$ = strdup("caracter"); }
     | T_VOID     { $$ = strdup("vazio"); }
     | T_CONST    { $$ = strdup("constante"); }
     | T_UNSIGNED { $$ = strdup("inteiro"); }
