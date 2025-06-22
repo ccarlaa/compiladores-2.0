@@ -18,8 +18,8 @@ BASH_DIR=bash
 # Encontra todos os scripts de teste na pasta bash
 TEST_SCRIPTS := $(wildcard $(BASH_DIR)/*.sh)
 
-# Arquivos fonte C (excluindo main.c)
-C_SOURCES=$(filter-out $(SRC_DIR)/main.c, $(wildcard $(SRC_DIR)/*.c))
+# Arquivos fonte C (incluindo main.c)
+C_SOURCES=$(wildcard $(SRC_DIR)/*.c)
 # Arquivo fonte do Lexer (Flex)
 LEX_SOURCE=$(LEXER_DIR)/lexer.l
 # Arquivo fonte do Parser (Bison)

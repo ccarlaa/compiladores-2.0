@@ -93,7 +93,12 @@ void generate_portugol(ASTNode *node) {
             
         case NODE_FUNCTION:
             print_indent();
-            printf("funcao %s()\n", node->value ? node->value : "inicio");
+            // Traduz "main" para "inicio" em Portugol
+            if (node->value && strcmp(node->value, "main") == 0) {
+                printf("funcao inicio()\n");
+            } else {
+                printf("funcao %s()\n", node->value ? node->value : "inicio");
+            }
             print_indent();
             printf("{\n");
             indent_level++;
@@ -129,7 +134,21 @@ void generate_portugol(ASTNode *node) {
                 // Inicialização (se houver)
                 if (node->child_count > 1) {
                     printf(" = ");
-                    generate_portugol(node->children[1]);
+                    // Verifica se é uma expressão de atribuição simples
+                    if (node->children[1]->type == NODE_ASSIGNMENT && 
+                        node->children[1]->child_count > 0 && 
+                        node->children[1]->children[0]->type == NODE_IDENTIFIER && 
+                        node->children[1]->children[0]->value && 
+                        node->value && 
+                        strcmp(node->children[1]->children[0]->value, node->value) == 0) {
+                        // Se a inicialização é uma atribuição para a mesma variável (x = x + ...),
+                        // vamos gerar apenas o lado direito
+                        if (node->children[1]->child_count > 1) {
+                            generate_portugol(node->children[1]->children[1]);
+                        }
+                    } else {
+                        generate_portugol(node->children[1]);
+                    }
                 }
                 
                 printf("\n");
@@ -267,7 +286,7 @@ void generate_portugol(ASTNode *node) {
             break;
             
         case NODE_BINARY_OP:
-            printf("(");
+            // Remover parênteses desnecessários para operações básicas
             if (node->child_count > 0) {
                 generate_portugol(node->children[0]); // Operando esquerdo
             }
@@ -275,7 +294,6 @@ void generate_portugol(ASTNode *node) {
             if (node->child_count > 1) {
                 generate_portugol(node->children[1]); // Operando direito
             }
-            printf(")");
             break;
             
         case NODE_UNARY_OP:
@@ -305,9 +323,10 @@ void generate_portugol(ASTNode *node) {
             break;
             
         default:
-            // Trata nós não implementados como comentários
-            print_indent();
-            printf("// [Nó não implementado: %d]\n", node->type);
+            // Suprimir mensagens de debug para nós não implementados
+            // Descomentar na fase de depuração se necessário
+            // print_indent();
+            // printf("// [Nó não implementado: %d]\n", node->type);
             break;
     }
 }
