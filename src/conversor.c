@@ -279,7 +279,8 @@ void generate_portugol(ASTNode *node) {
             break;
             
         case NODE_CONST_STRING:
-            printf("\"%s\"", node->value ? node->value : "");
+            // The node->value already contains the quotes, so we don't add more
+            printf("%s", node->value ? node->value : "\"\"");
             break;
             
         case NODE_CONST_CHAR:
@@ -315,6 +316,21 @@ void generate_portugol(ASTNode *node) {
             printf("continue\n");
             break;
             
+        case NODE_ELSE:
+            print_indent();
+            printf("senao\n");
+            print_indent();
+            printf("{\n");
+            indent_level++;
+            // Processar o bloco else
+            if (node->child_count > 0) {
+                generate_portugol(node->children[0]);
+            }
+            indent_level--;
+            print_indent();
+            printf("}\n");
+            break;
+        
         // Casos padrão para estruturas de lista
         case NODE_STATEMENT_LIST:
         case NODE_DECLARATION_LIST:
