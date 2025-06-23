@@ -53,5 +53,6 @@ ASTNode* create_node(NodeType type, const char *value);
 void add_child(ASTNode *parent, ASTNode *child);
 void free_ast(ASTNode *node);
 void print_ast(ASTNode *node, int depth);
+void print_ast_stderr(ASTNode *node, int depth);
 
 #endif

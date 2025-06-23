@@ -17,5 +17,7 @@ Symbol* lookup_symbol(const char *c_name);
 void free_symbol_table();
 void generate_portugol(ASTNode *node);
 const char* c_type_to_portugol(const char *c_type);
+void print_symbol_table(void);
+void print_symbol_table_stderr(void);
 
 #endif

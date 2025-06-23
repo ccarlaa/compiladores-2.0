@@ -64,6 +64,50 @@ void free_symbol_table() {
     symbol_table = NULL;
 }
 
+void print_symbol_table(void) {
+    printf("\n===== TABELA DE SÍMBOLOS =====\n");
+    printf("%-20s %-20s %-15s %-10s\n", "NOME C", "NOME PORTUGOL", "TIPO", "ESCOPO");
+    printf("----------------------------------------\n");
+    
+    Symbol *cur = symbol_table;
+    if (cur == NULL) {
+        printf("(tabela vazia)\n");
+    }
+    
+    while (cur != NULL) {
+        printf("%-20s %-20s %-15s %-10d\n", 
+               cur->c_name ? cur->c_name : "(null)",
+               cur->portugol_name ? cur->portugol_name : "(null)",
+               cur->type ? cur->type : "(null)", 
+               cur->scope);
+        cur = cur->next;
+    }
+    
+    printf("==============================\n\n");
+}
+
+void print_symbol_table_stderr(void) {
+    fprintf(stderr, "\n===== TABELA DE SÍMBOLOS =====\n");
+    fprintf(stderr, "%-20s %-20s %-15s %-10s\n", "NOME C", "NOME PORTUGOL", "TIPO", "ESCOPO");
+    fprintf(stderr, "----------------------------------------\n");
+    
+    Symbol *cur = symbol_table;
+    if (cur == NULL) {
+        fprintf(stderr, "(tabela vazia)\n");
+    }
+    
+    while (cur != NULL) {
+        fprintf(stderr, "%-20s %-20s %-15s %-10d\n", 
+               cur->c_name ? cur->c_name : "(null)",
+               cur->portugol_name ? cur->portugol_name : "(null)",
+               cur->type ? cur->type : "(null)", 
+               cur->scope);
+        cur = cur->next;
+    }
+    
+    fprintf(stderr, "==============================\n\n");
+}
+
 const char* c_type_to_portugol(const char *c_type) {
     if (strcmp(c_type, "int") == 0 || strcmp(c_type, "unsigned") == 0) {
         return "inteiro";

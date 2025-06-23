@@ -87,8 +87,10 @@ program:
     }
     function_list
     {
-        generate_portugol(ast_root);  // Gera código Portugol
+        print_ast_stderr(ast_root, 0);  // Imprime a árvore AST no stderr
+        generate_portugol(ast_root);    // Gera código Portugol
         free_ast(ast_root);
+        print_symbol_table_stderr();    // Imprime a tabela de símbolos no stderr
         free_symbol_table();
     }
     ;

@@ -604,16 +604,16 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    84,    84,    84,    97,   101,   110,   109,   136,   140,
-     150,   156,   165,   170,   177,   181,   189,   196,   197,   198,
-     199,   200,   201,   205,   209,   219,   220,   221,   222,   223,
-     224,   225,   226,   227,   228,   229,   230,   231,   232,   233,
-     234,   238,   248,   255,   262,   272,   282,   295,   296,   297,
-     298,   302,   309,   316,   326,   333,   343,   350,   360,   369,
-     377,   390,   402,   431,   441,   442,   449,   453,   463,   472,
-     473,   483,   492,   493,   498,   502,   503,   504,   505,   506,
-     507,   508,   509,   510,   511,   512,   513,   514,   515,   516,
-     517,   518,   519,   520,   521,   528,   535,   540,   544
+       0,    84,    84,    84,    99,   103,   112,   111,   138,   142,
+     152,   158,   167,   172,   179,   183,   191,   198,   199,   200,
+     201,   202,   203,   207,   211,   221,   222,   223,   224,   225,
+     226,   227,   228,   229,   230,   231,   232,   233,   234,   235,
+     236,   240,   250,   257,   264,   274,   284,   297,   298,   299,
+     300,   304,   311,   318,   328,   335,   345,   352,   362,   371,
+     379,   392,   404,   433,   443,   444,   451,   455,   465,   474,
+     475,   485,   494,   495,   500,   504,   505,   506,   507,   508,
+     509,   510,   511,   512,   513,   514,   515,   516,   517,   518,
+     519,   520,   521,   522,   523,   530,   537,   542,   546
 };
 #endif
 
@@ -1403,32 +1403,34 @@ yyreduce:
   case 3: /* program: $@1 function_list  */
 #line 89 "parser/parser.y"
     {
-        generate_portugol(ast_root);  // Gera código Portugol
+        print_ast_stderr(ast_root, 0);  // Imprime a árvore AST no stderr
+        generate_portugol(ast_root);    // Gera código Portugol
         free_ast(ast_root);
+        print_symbol_table_stderr();    // Imprime a tabela de símbolos no stderr
         free_symbol_table();
     }
-#line 1411 "build/y.tab.c"
+#line 1413 "build/y.tab.c"
     break;
 
   case 4: /* function_list: %empty  */
-#line 98 "parser/parser.y"
+#line 100 "parser/parser.y"
     {
         (yyval.ast) = create_node(NODE_EMPTY, NULL);
     }
-#line 1419 "build/y.tab.c"
+#line 1421 "build/y.tab.c"
     break;
 
   case 5: /* function_list: function_list function_declaration  */
-#line 102 "parser/parser.y"
+#line 104 "parser/parser.y"
     {
         add_child(ast_root, (yyvsp[0].ast));
         (yyval.ast) = (yyvsp[-1].ast);
     }
-#line 1428 "build/y.tab.c"
+#line 1430 "build/y.tab.c"
     break;
 
   case 6: /* $@2: %empty  */
-#line 110 "parser/parser.y"
+#line 112 "parser/parser.y"
     {
         insert_symbol((yyvsp[-3].sval), (yyvsp[-4].sval), 0);
         ASTNode *func_node = create_node(NODE_FUNCTION, (yyvsp[-3].sval));
@@ -1442,11 +1444,11 @@ yyreduce:
         func_node_temp = func_node;
         body_node_temp = body_node;
     }
-#line 1446 "build/y.tab.c"
+#line 1448 "build/y.tab.c"
     break;
 
   case 7: /* function_declaration: type_specifier T_ID T_LPAREN T_RPAREN T_LBRACE $@2 declarations statements T_RBRACE  */
-#line 126 "parser/parser.y"
+#line 128 "parser/parser.y"
     {
         // Usa as variáveis temporárias
         add_child(body_node_temp, (yyvsp[-2].ast));
@@ -1454,202 +1456,202 @@ yyreduce:
         (yyval.ast) = func_node_temp;
         free((yyvsp[-8].sval)); free((yyvsp[-7].sval));
     }
-#line 1458 "build/y.tab.c"
+#line 1460 "build/y.tab.c"
     break;
 
   case 8: /* declarations: %empty  */
-#line 137 "parser/parser.y"
+#line 139 "parser/parser.y"
     {
         (yyval.ast) = create_node(NODE_EMPTY, NULL);
     }
-#line 1466 "build/y.tab.c"
+#line 1468 "build/y.tab.c"
     break;
 
   case 9: /* declarations: declaration declarations  */
-#line 141 "parser/parser.y"
+#line 143 "parser/parser.y"
     {
         ASTNode *decls = create_node(NODE_DECLARATION_LIST, NULL);
         add_child(decls, (yyvsp[-1].ast));
         add_child(decls, (yyvsp[0].ast));
         (yyval.ast) = decls;
     }
-#line 1477 "build/y.tab.c"
+#line 1479 "build/y.tab.c"
     break;
 
   case 10: /* declaration: type_specifier declarator T_SEMICOLON  */
-#line 151 "parser/parser.y"
+#line 153 "parser/parser.y"
     {
         (yyval.ast) = create_declaration_node((yyvsp[-2].sval), (yyvsp[-1].sval), NULL);
         insert_symbol((yyvsp[-1].sval), (yyvsp[-2].sval), current_scope);
         free((yyvsp[-2].sval)); free((yyvsp[-1].sval));
     }
-#line 1487 "build/y.tab.c"
+#line 1489 "build/y.tab.c"
     break;
 
   case 11: /* declaration: type_specifier declarator T_ASSIGN expression T_SEMICOLON  */
-#line 157 "parser/parser.y"
+#line 159 "parser/parser.y"
     {
         (yyval.ast) = create_declaration_node((yyvsp[-4].sval), (yyvsp[-3].sval), (yyvsp[-1].ast));
         insert_symbol((yyvsp[-3].sval), (yyvsp[-4].sval), current_scope);
         free((yyvsp[-4].sval)); free((yyvsp[-3].sval));
     }
-#line 1497 "build/y.tab.c"
+#line 1499 "build/y.tab.c"
     break;
 
   case 12: /* declarator: pointer direct_declarator  */
-#line 166 "parser/parser.y"
+#line 168 "parser/parser.y"
     {
         asprintf(&(yyval.sval), "%s%s", (yyvsp[-1].sval), (yyvsp[0].sval));
         free((yyvsp[-1].sval)); free((yyvsp[0].sval));
     }
-#line 1506 "build/y.tab.c"
+#line 1508 "build/y.tab.c"
     break;
 
   case 13: /* declarator: direct_declarator  */
-#line 171 "parser/parser.y"
+#line 173 "parser/parser.y"
     {
         (yyval.sval) = (yyvsp[0].sval);
     }
-#line 1514 "build/y.tab.c"
+#line 1516 "build/y.tab.c"
     break;
 
   case 14: /* pointer: '*'  */
-#line 178 "parser/parser.y"
+#line 180 "parser/parser.y"
     {
         (yyval.sval) = strdup("*");
     }
-#line 1522 "build/y.tab.c"
+#line 1524 "build/y.tab.c"
     break;
 
   case 15: /* pointer: '*' pointer  */
-#line 182 "parser/parser.y"
+#line 184 "parser/parser.y"
     {
         asprintf(&(yyval.sval), "*%s", (yyvsp[0].sval));
         free((yyvsp[0].sval));
     }
-#line 1531 "build/y.tab.c"
+#line 1533 "build/y.tab.c"
     break;
 
   case 16: /* direct_declarator: T_ID  */
-#line 190 "parser/parser.y"
+#line 192 "parser/parser.y"
     {
         (yyval.sval) = (yyvsp[0].sval);
     }
-#line 1539 "build/y.tab.c"
+#line 1541 "build/y.tab.c"
     break;
 
   case 17: /* type_specifier: T_INT  */
-#line 196 "parser/parser.y"
+#line 198 "parser/parser.y"
                { (yyval.sval) = strdup("inteiro"); }
-#line 1545 "build/y.tab.c"
+#line 1547 "build/y.tab.c"
     break;
 
   case 18: /* type_specifier: T_FLOAT  */
-#line 197 "parser/parser.y"
+#line 199 "parser/parser.y"
                  { (yyval.sval) = strdup("real"); }
-#line 1551 "build/y.tab.c"
+#line 1553 "build/y.tab.c"
     break;
 
   case 19: /* type_specifier: T_CHAR  */
-#line 198 "parser/parser.y"
+#line 200 "parser/parser.y"
                  { (yyval.sval) = strdup("caracter"); }
-#line 1557 "build/y.tab.c"
+#line 1559 "build/y.tab.c"
     break;
 
   case 20: /* type_specifier: T_VOID  */
-#line 199 "parser/parser.y"
+#line 201 "parser/parser.y"
                  { (yyval.sval) = strdup("vazio"); }
-#line 1563 "build/y.tab.c"
+#line 1565 "build/y.tab.c"
     break;
 
   case 21: /* type_specifier: T_CONST  */
-#line 200 "parser/parser.y"
+#line 202 "parser/parser.y"
                  { (yyval.sval) = strdup("constante"); }
-#line 1569 "build/y.tab.c"
+#line 1571 "build/y.tab.c"
     break;
 
   case 22: /* type_specifier: T_UNSIGNED  */
-#line 201 "parser/parser.y"
+#line 203 "parser/parser.y"
                  { (yyval.sval) = strdup("inteiro"); }
-#line 1575 "build/y.tab.c"
+#line 1577 "build/y.tab.c"
     break;
 
   case 23: /* statements: %empty  */
-#line 206 "parser/parser.y"
+#line 208 "parser/parser.y"
     {
         (yyval.ast) = create_node(NODE_EMPTY, NULL);
     }
-#line 1583 "build/y.tab.c"
+#line 1585 "build/y.tab.c"
     break;
 
   case 24: /* statements: statement statements  */
-#line 210 "parser/parser.y"
+#line 212 "parser/parser.y"
     {
         ASTNode *stmts = create_node(NODE_STATEMENT_LIST, NULL);
         add_child(stmts, (yyvsp[-1].ast));
         add_child(stmts, (yyvsp[0].ast));
         (yyval.ast) = stmts;
     }
-#line 1594 "build/y.tab.c"
+#line 1596 "build/y.tab.c"
     break;
 
   case 40: /* statement: T_SEMICOLON  */
-#line 234 "parser/parser.y"
+#line 236 "parser/parser.y"
                   { (yyval.ast) = create_node(NODE_EMPTY, NULL); }
-#line 1600 "build/y.tab.c"
+#line 1602 "build/y.tab.c"
     break;
 
   case 41: /* do_while_statement: T_DO T_LBRACE statements T_RBRACE T_WHILE T_LPAREN expression T_RPAREN T_SEMICOLON  */
-#line 239 "parser/parser.y"
+#line 241 "parser/parser.y"
     {
         ASTNode *do_while = create_node(NODE_DO_WHILE, NULL);
         add_child(do_while, (yyvsp[-6].ast)); // Bloco de statements
         add_child(do_while, (yyvsp[-2].ast)); // Condição
         (yyval.ast) = do_while;
     }
-#line 1611 "build/y.tab.c"
+#line 1613 "build/y.tab.c"
     break;
 
   case 42: /* break_statement: T_BREAK T_SEMICOLON  */
-#line 249 "parser/parser.y"
+#line 251 "parser/parser.y"
     {
         (yyval.ast) = create_node(NODE_BREAK, NULL);
     }
-#line 1619 "build/y.tab.c"
+#line 1621 "build/y.tab.c"
     break;
 
   case 43: /* continue_statement: T_CONTINUE T_SEMICOLON  */
-#line 256 "parser/parser.y"
+#line 258 "parser/parser.y"
     {
         (yyval.ast) = create_node(NODE_CONTINUE, NULL);
     }
-#line 1627 "build/y.tab.c"
+#line 1629 "build/y.tab.c"
     break;
 
   case 44: /* scanf_statement: T_SCANF T_LPAREN T_STRING T_COMMA T_AMPERSAND T_ID T_RPAREN T_SEMICOLON  */
-#line 263 "parser/parser.y"
+#line 265 "parser/parser.y"
     {
         ASTNode *scanf_node = create_node(NODE_SCANF, (yyvsp[-5].sval));
         add_child(scanf_node, create_node(NODE_IDENTIFIER, (yyvsp[-2].sval)));
         (yyval.ast) = scanf_node;
         free((yyvsp[-5].sval)); free((yyvsp[-2].sval));
     }
-#line 1638 "build/y.tab.c"
+#line 1640 "build/y.tab.c"
     break;
 
   case 45: /* while_statement: T_WHILE T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE  */
-#line 273 "parser/parser.y"
+#line 275 "parser/parser.y"
     {
         ASTNode *while_node = create_node(NODE_WHILE, NULL);
         add_child(while_node, (yyvsp[-4].ast)); // Condição
         add_child(while_node, (yyvsp[-1].ast)); // Corpo
         (yyval.ast) = while_node;
     }
-#line 1649 "build/y.tab.c"
+#line 1651 "build/y.tab.c"
     break;
 
   case 46: /* for_statement: T_FOR T_LPAREN declaration_or_expression T_SEMICOLON expression T_SEMICOLON expression T_RPAREN T_LBRACE statements T_RBRACE  */
-#line 284 "parser/parser.y"
+#line 286 "parser/parser.y"
     {
         ASTNode *for_node = create_node(NODE_FOR, NULL);
         add_child(for_node, (yyvsp[-8].ast)); // Inicialização
@@ -1658,104 +1660,104 @@ yyreduce:
         add_child(for_node, (yyvsp[-1].ast)); // Corpo
         (yyval.ast) = for_node;
     }
-#line 1662 "build/y.tab.c"
+#line 1664 "build/y.tab.c"
     break;
 
   case 50: /* declaration_or_expression: %empty  */
-#line 298 "parser/parser.y"
+#line 300 "parser/parser.y"
              { (yyval.ast) = create_node(NODE_EMPTY, NULL); }
-#line 1668 "build/y.tab.c"
+#line 1670 "build/y.tab.c"
     break;
 
   case 51: /* assignment_statement: T_ID T_ASSIGN expression T_SEMICOLON  */
-#line 303 "parser/parser.y"
+#line 305 "parser/parser.y"
     {
         (yyval.ast) = create_assignment_node("=", 
             create_node(NODE_IDENTIFIER, (yyvsp[-3].sval)), 
             (yyvsp[-1].ast));
         free((yyvsp[-3].sval));
     }
-#line 1679 "build/y.tab.c"
+#line 1681 "build/y.tab.c"
     break;
 
   case 52: /* assignment_statement: T_ID T_PLUS_ASSIGN expression T_SEMICOLON  */
-#line 310 "parser/parser.y"
+#line 312 "parser/parser.y"
     {
         ASTNode *lhs = create_node(NODE_IDENTIFIER, (yyvsp[-3].sval));
         ASTNode *rhs = create_binary_op("+", lhs, (yyvsp[-1].ast));
         (yyval.ast) = create_assignment_node("=", lhs, rhs);
         free((yyvsp[-3].sval));
     }
-#line 1690 "build/y.tab.c"
+#line 1692 "build/y.tab.c"
     break;
 
   case 53: /* assignment_statement: T_ID T_MINUS_ASSIGN expression T_SEMICOLON  */
-#line 317 "parser/parser.y"
+#line 319 "parser/parser.y"
     {
         ASTNode *lhs = create_node(NODE_IDENTIFIER, (yyvsp[-3].sval));
         ASTNode *rhs = create_binary_op("-", lhs, (yyvsp[-1].ast));
         (yyval.ast) = create_assignment_node("=", lhs, rhs);
         free((yyvsp[-3].sval));
     }
-#line 1701 "build/y.tab.c"
+#line 1703 "build/y.tab.c"
     break;
 
   case 54: /* increment_statement: T_ID T_INC T_SEMICOLON  */
-#line 327 "parser/parser.y"
+#line 329 "parser/parser.y"
     {
         ASTNode *inc = create_node(NODE_UNARY_OP, "++");
         add_child(inc, create_node(NODE_IDENTIFIER, (yyvsp[-2].sval)));
         (yyval.ast) = inc;
         free((yyvsp[-2].sval));
     }
-#line 1712 "build/y.tab.c"
+#line 1714 "build/y.tab.c"
     break;
 
   case 55: /* increment_statement: T_INC T_ID T_SEMICOLON  */
-#line 334 "parser/parser.y"
+#line 336 "parser/parser.y"
     {
         ASTNode *inc = create_node(NODE_UNARY_OP, "++");
         add_child(inc, create_node(NODE_IDENTIFIER, (yyvsp[-1].sval)));
         (yyval.ast) = inc;
         free((yyvsp[-1].sval));
     }
-#line 1723 "build/y.tab.c"
+#line 1725 "build/y.tab.c"
     break;
 
   case 56: /* decrement_statement: T_ID T_DEC T_SEMICOLON  */
-#line 344 "parser/parser.y"
+#line 346 "parser/parser.y"
     {
         ASTNode *dec = create_node(NODE_UNARY_OP, "--");
         add_child(dec, create_node(NODE_IDENTIFIER, (yyvsp[-2].sval)));
         (yyval.ast) = dec;
         free((yyvsp[-2].sval));
     }
-#line 1734 "build/y.tab.c"
+#line 1736 "build/y.tab.c"
     break;
 
   case 57: /* decrement_statement: T_DEC T_ID T_SEMICOLON  */
-#line 351 "parser/parser.y"
+#line 353 "parser/parser.y"
     {
         ASTNode *dec = create_node(NODE_UNARY_OP, "--");
         add_child(dec, create_node(NODE_IDENTIFIER, (yyvsp[-1].sval)));
         (yyval.ast) = dec;
         free((yyvsp[-1].sval));
     }
-#line 1745 "build/y.tab.c"
+#line 1747 "build/y.tab.c"
     break;
 
   case 58: /* return_statement: T_RETURN expression T_SEMICOLON  */
-#line 361 "parser/parser.y"
+#line 363 "parser/parser.y"
     {
         ASTNode *ret = create_node(NODE_RETURN, NULL);
         add_child(ret, (yyvsp[-1].ast));
         (yyval.ast) = ret;
     }
-#line 1755 "build/y.tab.c"
+#line 1757 "build/y.tab.c"
     break;
 
   case 59: /* if_statement: T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE  */
-#line 370 "parser/parser.y"
+#line 372 "parser/parser.y"
     {
         ASTNode *if_node = create_node(NODE_IF, NULL);
         add_child(if_node, (yyvsp[-4].ast)); // Condição
@@ -1763,11 +1765,11 @@ yyreduce:
         if_node_temp = if_node;
         (yyval.ast) = if_node;
     }
-#line 1767 "build/y.tab.c"
+#line 1769 "build/y.tab.c"
     break;
 
   case 60: /* if_statement: T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE  */
-#line 378 "parser/parser.y"
+#line 380 "parser/parser.y"
     {
         ASTNode *if_node = create_node(NODE_IF, NULL);
         add_child(if_node, (yyvsp[-12].ast)); // Condição
@@ -1780,11 +1782,11 @@ yyreduce:
         add_child(if_node, elseif);
         (yyval.ast) = if_node;
     }
-#line 1784 "build/y.tab.c"
+#line 1786 "build/y.tab.c"
     break;
 
   case 61: /* if_statement: T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_LBRACE statements T_RBRACE  */
-#line 391 "parser/parser.y"
+#line 393 "parser/parser.y"
     {
         ASTNode *if_node = create_node(NODE_IF, NULL);
         add_child(if_node, (yyvsp[-8].ast)); // Condição
@@ -1796,11 +1798,11 @@ yyreduce:
         add_child(if_node, else_node);
         (yyval.ast) = if_node;
     }
-#line 1800 "build/y.tab.c"
+#line 1802 "build/y.tab.c"
     break;
 
   case 62: /* if_statement: T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_LBRACE statements T_RBRACE  */
-#line 403 "parser/parser.y"
+#line 405 "parser/parser.y"
     {
         ASTNode *if_node = create_node(NODE_IF, NULL);
         add_child(if_node, (yyvsp[-16].ast)); // Condição
@@ -1817,226 +1819,226 @@ yyreduce:
         add_child(if_node, elseif);
         (yyval.ast) = if_node;
     }
-#line 1821 "build/y.tab.c"
+#line 1823 "build/y.tab.c"
     break;
 
   case 63: /* switch_statement: T_SWITCH T_LPAREN expression T_RPAREN T_LBRACE case_list T_RBRACE  */
-#line 432 "parser/parser.y"
+#line 434 "parser/parser.y"
     {
         ASTNode *switch_node = create_node(NODE_SWITCH, NULL);
         add_child(switch_node, (yyvsp[-4].ast)); // Expressão
         add_child(switch_node, (yyvsp[-1].ast)); // Casos
         (yyval.ast) = switch_node;
     }
-#line 1832 "build/y.tab.c"
+#line 1834 "build/y.tab.c"
     break;
 
   case 64: /* case_list: %empty  */
-#line 441 "parser/parser.y"
+#line 443 "parser/parser.y"
            { (yyval.ast) = create_node(NODE_EMPTY, NULL); }
-#line 1838 "build/y.tab.c"
+#line 1840 "build/y.tab.c"
     break;
 
   case 65: /* case_list: case_statement case_list  */
-#line 443 "parser/parser.y"
+#line 445 "parser/parser.y"
     {
         ASTNode *cases = create_node(NODE_CASE_LIST, NULL);
         add_child(cases, (yyvsp[-1].ast));
         add_child(cases, (yyvsp[0].ast));
         (yyval.ast) = cases;
     }
-#line 1849 "build/y.tab.c"
+#line 1851 "build/y.tab.c"
     break;
 
   case 67: /* case_statement: T_CASE expression T_COLON statement_list  */
-#line 454 "parser/parser.y"
+#line 456 "parser/parser.y"
     {
         ASTNode *case_node = create_node(NODE_CASE, NULL);
         add_child(case_node, (yyvsp[-2].ast)); // Valor
         add_child(case_node, (yyvsp[0].ast)); // Statements
         (yyval.ast) = case_node;
     }
-#line 1860 "build/y.tab.c"
+#line 1862 "build/y.tab.c"
     break;
 
   case 68: /* default_statement: T_DEFAULT T_COLON statement_list  */
-#line 464 "parser/parser.y"
+#line 466 "parser/parser.y"
     {
         ASTNode *default_node = create_node(NODE_DEFAULT, NULL);
         add_child(default_node, (yyvsp[0].ast)); // Statements
         (yyval.ast) = default_node;
     }
-#line 1870 "build/y.tab.c"
+#line 1872 "build/y.tab.c"
     break;
 
   case 69: /* statement_list: %empty  */
-#line 472 "parser/parser.y"
+#line 474 "parser/parser.y"
            { (yyval.ast) = create_node(NODE_EMPTY, NULL); }
-#line 1876 "build/y.tab.c"
+#line 1878 "build/y.tab.c"
     break;
 
   case 70: /* statement_list: statement statement_list  */
-#line 474 "parser/parser.y"
+#line 476 "parser/parser.y"
     {
         ASTNode *stmts = create_node(NODE_STATEMENT_LIST, NULL);
         add_child(stmts, (yyvsp[-1].ast));
         add_child(stmts, (yyvsp[0].ast));
         (yyval.ast) = stmts;
     }
-#line 1887 "build/y.tab.c"
+#line 1889 "build/y.tab.c"
     break;
 
   case 71: /* function_call_statement: T_ID T_LPAREN T_RPAREN T_SEMICOLON  */
-#line 484 "parser/parser.y"
+#line 486 "parser/parser.y"
     {
         ASTNode *call = create_node(NODE_FUNCTION_CALL, (yyvsp[-3].sval));
         (yyval.ast) = call;
         free((yyvsp[-3].sval));
     }
-#line 1897 "build/y.tab.c"
+#line 1899 "build/y.tab.c"
     break;
 
   case 72: /* expression: T_ID  */
-#line 492 "parser/parser.y"
+#line 494 "parser/parser.y"
                              { (yyval.ast) = create_node(NODE_IDENTIFIER, (yyvsp[0].sval)); }
-#line 1903 "build/y.tab.c"
+#line 1905 "build/y.tab.c"
     break;
 
   case 73: /* expression: T_NUMBER_INT  */
-#line 493 "parser/parser.y"
+#line 495 "parser/parser.y"
                              { 
         char num[20]; 
         sprintf(num, "%d", (yyvsp[0].ival)); 
         (yyval.ast) = create_node(NODE_CONST_INT, num); 
     }
-#line 1913 "build/y.tab.c"
+#line 1915 "build/y.tab.c"
     break;
 
   case 74: /* expression: T_NUMBER_FLOAT  */
-#line 498 "parser/parser.y"
+#line 500 "parser/parser.y"
                              { 
         // Directly use the string representation from the lexer
         (yyval.ast) = create_node(NODE_CONST_FLOAT, (yyvsp[0].sval)); 
     }
-#line 1922 "build/y.tab.c"
+#line 1924 "build/y.tab.c"
     break;
 
   case 75: /* expression: T_STRING  */
-#line 502 "parser/parser.y"
+#line 504 "parser/parser.y"
                              { (yyval.ast) = create_node(NODE_CONST_STRING, (yyvsp[0].sval)); }
-#line 1928 "build/y.tab.c"
+#line 1930 "build/y.tab.c"
     break;
 
   case 76: /* expression: T_CHAR_LITERAL  */
-#line 503 "parser/parser.y"
+#line 505 "parser/parser.y"
                              { (yyval.ast) = create_node(NODE_CONST_CHAR, (yyvsp[0].sval)); }
-#line 1934 "build/y.tab.c"
+#line 1936 "build/y.tab.c"
     break;
 
   case 77: /* expression: expression T_PLUS expression  */
-#line 504 "parser/parser.y"
+#line 506 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("+", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1940 "build/y.tab.c"
+#line 1942 "build/y.tab.c"
     break;
 
   case 78: /* expression: expression T_MINUS expression  */
-#line 505 "parser/parser.y"
+#line 507 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("-", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1946 "build/y.tab.c"
+#line 1948 "build/y.tab.c"
     break;
 
   case 79: /* expression: expression T_MULT expression  */
-#line 506 "parser/parser.y"
+#line 508 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("*", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1952 "build/y.tab.c"
+#line 1954 "build/y.tab.c"
     break;
 
   case 80: /* expression: expression T_DIV expression  */
-#line 507 "parser/parser.y"
+#line 509 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("/", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1958 "build/y.tab.c"
+#line 1960 "build/y.tab.c"
     break;
 
   case 81: /* expression: expression T_MOD expression  */
-#line 508 "parser/parser.y"
+#line 510 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("%", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1964 "build/y.tab.c"
+#line 1966 "build/y.tab.c"
     break;
 
   case 82: /* expression: expression T_EQ expression  */
-#line 509 "parser/parser.y"
+#line 511 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("==", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1970 "build/y.tab.c"
+#line 1972 "build/y.tab.c"
     break;
 
   case 83: /* expression: expression T_NEQ expression  */
-#line 510 "parser/parser.y"
+#line 512 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("!=", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1976 "build/y.tab.c"
+#line 1978 "build/y.tab.c"
     break;
 
   case 84: /* expression: expression T_LT expression  */
-#line 511 "parser/parser.y"
+#line 513 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("<", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1982 "build/y.tab.c"
+#line 1984 "build/y.tab.c"
     break;
 
   case 85: /* expression: expression T_GT expression  */
-#line 512 "parser/parser.y"
+#line 514 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op(">", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1988 "build/y.tab.c"
+#line 1990 "build/y.tab.c"
     break;
 
   case 86: /* expression: expression T_LE expression  */
-#line 513 "parser/parser.y"
+#line 515 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("<=", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 1994 "build/y.tab.c"
+#line 1996 "build/y.tab.c"
     break;
 
   case 87: /* expression: expression T_GE expression  */
-#line 514 "parser/parser.y"
+#line 516 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op(">=", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 2000 "build/y.tab.c"
+#line 2002 "build/y.tab.c"
     break;
 
   case 88: /* expression: expression T_AND expression  */
-#line 515 "parser/parser.y"
+#line 517 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("e", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 2006 "build/y.tab.c"
+#line 2008 "build/y.tab.c"
     break;
 
   case 89: /* expression: expression T_OR expression  */
-#line 516 "parser/parser.y"
+#line 518 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("ou", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 2012 "build/y.tab.c"
+#line 2014 "build/y.tab.c"
     break;
 
   case 90: /* expression: expression T_BIT_OR expression  */
-#line 517 "parser/parser.y"
+#line 519 "parser/parser.y"
                                       { (yyval.ast) = create_binary_op("|", (yyvsp[-2].ast), (yyvsp[0].ast)); }
-#line 2018 "build/y.tab.c"
+#line 2020 "build/y.tab.c"
     break;
 
   case 91: /* expression: T_AMPERSAND expression  */
-#line 518 "parser/parser.y"
+#line 520 "parser/parser.y"
                                      { (yyval.ast) = create_unary_op("&", (yyvsp[0].ast)); }
-#line 2024 "build/y.tab.c"
+#line 2026 "build/y.tab.c"
     break;
 
   case 92: /* expression: T_NOT expression  */
-#line 519 "parser/parser.y"
+#line 521 "parser/parser.y"
                                      { (yyval.ast) = create_unary_op("nao", (yyvsp[0].ast)); }
-#line 2030 "build/y.tab.c"
+#line 2032 "build/y.tab.c"
     break;
 
   case 93: /* expression: T_LPAREN expression T_RPAREN  */
-#line 520 "parser/parser.y"
+#line 522 "parser/parser.y"
                                      { (yyval.ast) = (yyvsp[-1].ast); }
-#line 2036 "build/y.tab.c"
+#line 2038 "build/y.tab.c"
     break;
 
   case 94: /* expression: expression T_DOT T_ID  */
-#line 521 "parser/parser.y"
+#line 523 "parser/parser.y"
                                       { 
         ASTNode *dot = create_node(NODE_MEMBER_ACCESS, ".");
         add_child(dot, (yyvsp[-2].ast));
@@ -2044,11 +2046,11 @@ yyreduce:
         (yyval.ast) = dot;
         free((yyvsp[0].sval));
     }
-#line 2048 "build/y.tab.c"
+#line 2050 "build/y.tab.c"
     break;
 
   case 95: /* expression: expression T_ARROW T_ID  */
-#line 528 "parser/parser.y"
+#line 530 "parser/parser.y"
                                       { 
         ASTNode *arrow = create_node(NODE_POINTER_ACCESS, "->");
         add_child(arrow, (yyvsp[-2].ast));
@@ -2056,37 +2058,37 @@ yyreduce:
         (yyval.ast) = arrow;
         free((yyvsp[0].sval));
     }
-#line 2060 "build/y.tab.c"
+#line 2062 "build/y.tab.c"
     break;
 
   case 96: /* expression: T_ID T_LPAREN T_RPAREN  */
-#line 535 "parser/parser.y"
+#line 537 "parser/parser.y"
                                       { 
         ASTNode *call = create_node(NODE_FUNCTION_CALL, (yyvsp[-2].sval)); 
         (yyval.ast) = call;
         free((yyvsp[-2].sval));
     }
-#line 2070 "build/y.tab.c"
+#line 2072 "build/y.tab.c"
     break;
 
   case 97: /* expression: '*' expression  */
-#line 540 "parser/parser.y"
+#line 542 "parser/parser.y"
                                       { (yyval.ast) = create_unary_op("*", (yyvsp[0].ast)); }
-#line 2076 "build/y.tab.c"
+#line 2078 "build/y.tab.c"
     break;
 
   case 98: /* printf_statement: T_PRINTF T_LPAREN expression T_RPAREN T_SEMICOLON  */
-#line 545 "parser/parser.y"
+#line 547 "parser/parser.y"
     {
         ASTNode *printf_node = create_node(NODE_PRINTF, NULL);
         add_child(printf_node, (yyvsp[-2].ast));
         (yyval.ast) = printf_node;
     }
-#line 2086 "build/y.tab.c"
+#line 2088 "build/y.tab.c"
     break;
 
 
-#line 2090 "build/y.tab.c"
+#line 2092 "build/y.tab.c"
 
       default: break;
     }
@@ -2279,7 +2281,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 552 "parser/parser.y"
+#line 554 "parser/parser.y"
 
 
 // Funções auxiliares
