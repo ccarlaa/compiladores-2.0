@@ -372,23 +372,54 @@ if_statement:
         add_child(if_node, $3); // Condição
         add_child(if_node, $6); // Then
         if_node_temp = if_node;
+        $$ = if_node;
     }
-    elseif_chain
+    | T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE
     {
-        add_child(if_node_temp, $9); // Else/ElseIf
-        $$ = if_node_temp;
+        ASTNode *if_node = create_node(NODE_IF, NULL);
+        add_child(if_node, $3); // Condição
+        add_child(if_node, $6); // Then
+        
+        ASTNode *elseif = create_node(NODE_ELSE_IF, NULL);
+        add_child(elseif, $11); // Condição do else if
+        add_child(elseif, $14); // Then do else if
+        
+        add_child(if_node, elseif);
+        $$ = if_node;
+    }
+    | T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_LBRACE statements T_RBRACE
+    {
+        ASTNode *if_node = create_node(NODE_IF, NULL);
+        add_child(if_node, $3); // Condição
+        add_child(if_node, $6); // Then
+        
+        ASTNode *else_node = create_node(NODE_ELSE, NULL);
+        add_child(else_node, $10); // Bloco else
+        
+        add_child(if_node, else_node);
+        $$ = if_node;
+    }
+    | T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_LBRACE statements T_RBRACE
+    {
+        ASTNode *if_node = create_node(NODE_IF, NULL);
+        add_child(if_node, $3); // Condição
+        add_child(if_node, $6); // Then
+        
+        ASTNode *elseif = create_node(NODE_ELSE_IF, NULL);
+        add_child(elseif, $11); // Condição do else if
+        add_child(elseif, $14); // Then do else if
+        
+        ASTNode *else_node = create_node(NODE_ELSE, NULL);
+        add_child(else_node, $18); // Bloco else
+        
+        add_child(elseif, else_node);
+        add_child(if_node, elseif);
+        $$ = if_node;
     }
     ;
 
 elseif_chain:
     %empty { $$ = create_node(NODE_EMPTY, NULL); }
-    | T_ELSE T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE
-    {
-        ASTNode *elseif = create_node(NODE_ELSE_IF, NULL);
-        add_child(elseif, $4); // Condição
-        add_child(elseif, $7); // Then
-        $$ = elseif;
-    }
     | T_ELSE T_LBRACE statements T_RBRACE
     {
         $$ = create_node(NODE_ELSE, NULL);

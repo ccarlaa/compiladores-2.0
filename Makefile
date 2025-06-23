@@ -66,14 +66,24 @@ $(YACC_GENERATED_C) $(YACC_GENERATED_H): $(YACC_SOURCE) | $(BUILD_DIR)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# Regra para rodar todos os testes em paralelo
+# Regra para rodar todos os testes sequencialmente
 test: $(TARGET)
-	@echo "Iniciando bateria de testes paralelizados..."
-	@for script in $(TEST_SCRIPTS); do \
-		(bash $$script &) \
+	@echo "Iniciando bateria de testes..."
+	@success=true; \
+	for script in $(TEST_SCRIPTS); do \
+		echo "Executando $$script..."; \
+		if ! bash $$script; then \
+			success=false; \
+			echo "❌ Falha no teste $$script"; \
+		fi; \
+		echo ""; \
 	done; \
-	wait; \
-	echo "Todos os testes foram concluídos"
+	if [ "$$success" = true ]; then \
+		echo "✅ Todos os testes foram concluídos com sucesso!"; \
+	else \
+		echo "❌ Alguns testes falharam. Verifique os logs acima."; \
+		exit 1; \
+	fi
 
 # Alvo para limpar os arquivos gerados
 .PHONY: all clean test

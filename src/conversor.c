@@ -342,6 +342,29 @@ void generate_portugol(ASTNode *node) {
             printf("continue\n");
             break;
             
+        case NODE_ELSE_IF:
+            print_indent();
+            printf("senao se (");
+            if (node->child_count > 0) {
+                generate_portugol(node->children[0]); // Condição
+            }
+            printf(")\n");
+            print_indent();
+            printf("{\n");
+            indent_level++;
+            if (node->child_count > 1) {
+                generate_portugol(node->children[1]); // Bloco then
+            }
+            indent_level--;
+            print_indent();
+            printf("}\n");
+            
+            // Se tem um bloco else ou outro else-if
+            if (node->child_count > 2) {
+                generate_portugol(node->children[2]);
+            }
+            break;
+            
         case NODE_ELSE:
             print_indent();
             printf("senao\n");
@@ -363,6 +386,16 @@ void generate_portugol(ASTNode *node) {
         case NODE_BLOCK:
             for (int i = 0; i < node->child_count; i++) {
                 generate_portugol(node->children[i]);
+                
+                // Add a blank line after declarations if followed by a control statement
+                if (i < node->child_count - 1 && 
+                    (node->children[i]->type == NODE_DECLARATION || 
+                     (i > 0 && node->children[i-1]->type == NODE_DECLARATION)) && 
+                    (node->children[i+1]->type == NODE_IF || 
+                     node->children[i+1]->type == NODE_WHILE || 
+                     node->children[i+1]->type == NODE_FOR)) {
+                    printf("\n");
+                }
             }
             break;
             
