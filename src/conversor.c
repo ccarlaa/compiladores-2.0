@@ -273,9 +273,17 @@ void generate_portugol(ASTNode *node) {
             break;
             
         case NODE_CONST_INT:
-        case NODE_CONST_FLOAT:
-            // We need to preserve the exact format of float literals (e.g. 3.14 vs 3.140000)
             printf("%s", node->value ? node->value : "0");
+            break;
+            
+        case NODE_CONST_FLOAT:
+            // Format float values with exactly two decimal places
+            if (node->value) {
+                float value = atof(node->value);
+                printf("%.2f", value);
+            } else {
+                printf("0.00");
+            }
             break;
             
         case NODE_CONST_STRING:

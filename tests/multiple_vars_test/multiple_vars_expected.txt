@@ -4,7 +4,7 @@ programa
     {
         inteiro num1 = 10
         real num2 = 20.50
-        caractere grade = 'A'
+        caracter grade = 'A'
         inteiro sum = num1 + 5
         real product = num2 * 2.00
         escreva(sum)
