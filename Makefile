@@ -1,7 +1,7 @@
 # Compilador a ser usado (GNU C Compiler)
 CC=gcc
 # Flags de compilação (-I para incluir diretórios)
-CFLAGS=-Iinclude -I$(BUILD_DIR)
+CFLAGS=-Iinclude -I$(BUILD_DIR) -Wall -Wextra
 # Ferramentas de análise
 LEX=flex
 YACC=bison
@@ -15,11 +15,10 @@ PARSER_DIR=parser
 BUILD_DIR=build
 BASH_DIR=bash
 
-# --- ADIÇÃO 1: Variável para encontrar os scripts de teste ---
 # Encontra todos os scripts de teste na pasta bash
 TEST_SCRIPTS := $(wildcard $(BASH_DIR)/*.sh)
 
-# Arquivos fonte C
+# Arquivos fonte C (incluindo main.c)
 C_SOURCES=$(wildcard $(SRC_DIR)/*.c)
 # Arquivo fonte do Lexer (Flex)
 LEX_SOURCE=$(LEXER_DIR)/lexer.l
@@ -41,7 +40,7 @@ all: $(TARGET)
 
 # Regra para linkar tudo e criar o executável final
 $(TARGET): $(C_OBJECTS) $(LEX_OBJECT) $(YACC_OBJECT)
-	$(CC) $(CFLAGS) $^ -o $(TARGET)
+	$(CC) $(CFLAGS) $^ -o $@
 
 # Regra para compilar cada arquivo .c do diretório src para um .o no diretório build
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
@@ -59,26 +58,33 @@ $(YACC_OBJECT): $(YACC_GENERATED_C)
 $(LEX_GENERATED_C): $(LEX_SOURCE) | $(BUILD_DIR)
 	$(LEX) -o $@ $<
 
-# Regra para gerar os arquivos .c e .h do Bison.
+# Regra para gerar os arquivos .c e .h do Bison
 $(YACC_GENERATED_C) $(YACC_GENERATED_H): $(YACC_SOURCE) | $(BUILD_DIR)
 	$(YACC) -d -o $(YACC_GENERATED_C) $<
 
 # Regra para criar o diretório de build se ele não existir
-# Usada como uma "order-only prerequisite" (após o |)
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-# --- ADIÇÃO 2: Regra para rodar todos os testes ---
-# Garante que o compilador está atualizado e depois roda os scripts
+# Regra para rodar todos os testes sequencialmente
 test: $(TARGET)
-	@echo "Iniciando bateria de testes com o compilador atualizado..."
-	@for script in $(TEST_SCRIPTS); do \
-	    echo "--- Executando $$script ---"; \
-	    bash $$script; \
-	done
-	@echo "Bateria de testes finalizada."
+	@echo "Iniciando bateria de testes..."
+	@success=true; \
+	for script in $(TEST_SCRIPTS); do \
+		echo "Executando $$script..."; \
+		if ! bash $$script; then \
+			success=false; \
+			echo "❌ Falha no teste $$script"; \
+		fi; \
+		echo ""; \
+	done; \
+	if [ "$$success" = true ]; then \
+		echo "✅ Todos os testes foram concluídos com sucesso!"; \
+	else \
+		echo "❌ Alguns testes falharam. Verifique os logs acima."; \
+		exit 1; \
+	fi
 
-# --- ADIÇÃO 3: Adicionar 'test' aos alvos que não são arquivos ---
 # Alvo para limpar os arquivos gerados
 .PHONY: all clean test
 clean:

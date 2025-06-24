@@ -2,7 +2,8 @@
 /* * Analisador Léxico (Lexer) para um subconjunto da linguagem C.
  * Este arquivo define as "palavras" ou "tokens" que o parser irá usar.
  */
-#include "y.tab.h" // Inclui os tokens definidos pelo Bison
+#include "y.tab.h" 
+#include "ast.h"
 #include <string.h>
 
 // Função para retornar strings, evitando warnings
@@ -32,8 +33,9 @@ CARACTERE           \'(.|\\.)\'
 
 "//".* ; /* Ignora comentários de uma linha */
 "/*"([^*]|"*"+[^*/])*"*"+"/" ; /* Ignora comentários de múltiplas linhas */
+[ \t\n\r]+          ; /* Ignora espaços em branco, tabs e novas linhas */
 
-^#.*$ ; /* Ignora linhas de pré-processador (ex: #include, #define) */
+^#.* ; /* Ignora linhas de pré-processador (ex: #include, #define) */
 
  /* --- Palavras-chave --- */
 "if"                { return T_IF; }
@@ -51,20 +53,19 @@ CARACTERE           \'(.|\\.)\'
 "break"             { return T_BREAK; }
 "continue"          { return T_CONTINUE; }
 "do"                { return T_DO; }
-"struct"            { return T_STRUCT; }
-"const"             { return T_CONST; }
-"unsigned"          { return T_UNSIGNED; }
 
  /* --- Tipos de Dados --- */
 "int"               { return T_INT; }
 "float"             { return T_FLOAT; }
 "char"              { return T_CHAR; }
 "void"              { return T_VOID; }
+"const"             { return T_CONST; }
+"unsigned"          { return T_UNSIGNED; }
 
  /* --- Identificadores e Literais --- */
 {IDENTIFICADOR}     { yylval.sval = dupstr(yytext); return T_ID; }
 {NUMERO_INTEIRO}    { yylval.ival = atoi(yytext); return T_NUMBER_INT; }
-{NUMERO_REAL}       { yylval.fval = atof(yytext); return T_NUMBER_FLOAT; }
+{NUMERO_REAL}       { yylval.sval = dupstr(yytext); return T_NUMBER_FLOAT; }
 {TEXTO}             { yylval.sval = dupstr(yytext); return T_STRING; }
 {CARACTERE}         { yylval.sval = dupstr(yytext); return T_CHAR_LITERAL; }
 
@@ -104,8 +105,7 @@ CARACTERE           \'(.|\\.)\'
 ":"                 { return T_COLON; }
 
 
- /* Ignora espaços em branco, tabs e novas linhas */
-[ \t\n\r]+          ;
+
 
  /* Trata qualquer outro caractere como um erro */
 .                   { fprintf(stderr, "Erro lexico: Caractere inesperado '%s'\n", yytext); }
