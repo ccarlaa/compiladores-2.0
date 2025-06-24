@@ -33,6 +33,7 @@ CARACTERE           \'(.|\\.)\'
 
 "//".* ; /* Ignora comentários de uma linha */
 "/*"([^*]|"*"+[^*/])*"*"+"/" ; /* Ignora comentários de múltiplas linhas */
+[ \t\n\r]+          ; /* Ignora espaços em branco, tabs e novas linhas */
 
 ^#.* ; /* Ignora linhas de pré-processador (ex: #include, #define) */
 
@@ -104,8 +105,7 @@ CARACTERE           \'(.|\\.)\'
 ":"                 { return T_COLON; }
 
 
- /* Ignora espaços em branco, tabs e novas linhas */
-[ \t\n\r]+          ;
+
 
  /* Trata qualquer outro caractere como um erro */
 .                   { fprintf(stderr, "Erro lexico: Caractere inesperado '%s'\n", yytext); }

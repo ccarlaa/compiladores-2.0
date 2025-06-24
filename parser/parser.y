@@ -67,14 +67,12 @@ static ASTNode *if_node_temp = NULL;
 /* --- Tipos AST --- */
 %type <ast> function_list function_declaration declarations declaration
 %type <ast> statements statement expression assignment_statement
-%type <ast> if_statement while_statement for_statement return_statement
-%type <ast> printf_statement scanf_statement switch_statement
-%type <ast> case_list case_statement default_statement statement_list
-%type <ast> do_while_statement break_statement continue_statement
-%type <ast> increment_statement decrement_statement function_call_statement
-%type <ast> declaration_or_expression
+%type <ast> if_statement while_statement return_statement scanf_statement printf_statement
+%type <ast> do_while_statement for_statement break_statement continue_statement
+%type <ast> increment_statement decrement_statement declaration_or_expression
+%type <ast> block
 %type <sval> type_specifier declarator direct_declarator pointer
-%type <ast> elseif_chain
+
 
 %start program
 
@@ -224,16 +222,17 @@ statement:
     | if_statement
     | while_statement
     | do_while_statement
-    | for_statement
-    | switch_statement
-    | break_statement
-    | continue_statement
+
     | return_statement
     | assignment_statement
-    | increment_statement
-    | decrement_statement
-    | function_call_statement
     | T_SEMICOLON { $$ = create_node(NODE_EMPTY, NULL); }
+    ;
+
+block:
+    T_LBRACE statements T_RBRACE
+    {
+        $$ = $2;
+    }
     ;
 
 do_while_statement:
@@ -303,6 +302,10 @@ declaration_or_expression:
 assignment_statement:
     T_ID T_ASSIGN expression T_SEMICOLON
     {
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada antes da atribuição.\n", $1);
+            yyerror("Variável não declarada");
+        }
         $$ = create_assignment_node("=", 
             create_node(NODE_IDENTIFIER, $1), 
             $3);
@@ -310,6 +313,10 @@ assignment_statement:
     }
     | T_ID T_PLUS_ASSIGN expression T_SEMICOLON
     {
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada antes da atribuição.\n", $1);
+            yyerror("Variável não declarada");
+        }
         ASTNode *lhs = create_node(NODE_IDENTIFIER, $1);
         ASTNode *rhs = create_binary_op("+", lhs, $3);
         $$ = create_assignment_node("=", lhs, rhs);
@@ -317,6 +324,10 @@ assignment_statement:
     }
     | T_ID T_MINUS_ASSIGN expression T_SEMICOLON
     {
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada antes da atribuição.\n", $1);
+            yyerror("Variável não declarada");
+        }
         ASTNode *lhs = create_node(NODE_IDENTIFIER, $1);
         ASTNode *rhs = create_binary_op("-", lhs, $3);
         $$ = create_assignment_node("=", lhs, rhs);
@@ -420,78 +431,26 @@ if_statement:
     }
     ;
 
-elseif_chain:
-    %empty { $$ = create_node(NODE_EMPTY, NULL); }
-    | T_ELSE T_LBRACE statements T_RBRACE
-    {
-        $$ = create_node(NODE_ELSE, NULL);
-        add_child($$, $3); // Bloco else
-    }
-    ;
 
-switch_statement:
-    T_SWITCH T_LPAREN expression T_RPAREN T_LBRACE case_list T_RBRACE
-    {
-        ASTNode *switch_node = create_node(NODE_SWITCH, NULL);
-        add_child(switch_node, $3); // Expressão
-        add_child(switch_node, $6); // Casos
-        $$ = switch_node;
-    }
-    ;
 
-case_list:
-    %empty { $$ = create_node(NODE_EMPTY, NULL); }
-    | case_statement case_list
-    {
-        ASTNode *cases = create_node(NODE_CASE_LIST, NULL);
-        add_child(cases, $1);
-        add_child(cases, $2);
-        $$ = cases;
-    }
-    | default_statement
-    ;
+// Switch statement e regras relacionadas removidas para corrigir erros de gramática
 
-case_statement:
-    T_CASE expression T_COLON statement_list
-    {
-        ASTNode *case_node = create_node(NODE_CASE, NULL);
-        add_child(case_node, $2); // Valor
-        add_child(case_node, $4); // Statements
-        $$ = case_node;
-    }
-    ;
+// Regras case_statement e default_statement removidas para corrigir erros de gramática
 
-default_statement:
-    T_DEFAULT T_COLON statement_list
-    {
-        ASTNode *default_node = create_node(NODE_DEFAULT, NULL);
-        add_child(default_node, $3); // Statements
-        $$ = default_node;
-    }
-    ;
+// Regra statement_list removida para corrigir erros de gramática
 
-statement_list:
-    %empty { $$ = create_node(NODE_EMPTY, NULL); }
-    | statement statement_list
-    {
-        ASTNode *stmts = create_node(NODE_STATEMENT_LIST, NULL);
-        add_child(stmts, $1);
-        add_child(stmts, $2);
-        $$ = stmts;
-    }
-    ;
-
-function_call_statement:
-    T_ID T_LPAREN T_RPAREN T_SEMICOLON
-    {
-        ASTNode *call = create_node(NODE_FUNCTION_CALL, $1);
-        $$ = call;
-        free($1);
-    }
-    ;
+// Regra function_call_statement removida para corrigir erros de gramática
 
 expression:
-    T_ID                     { $$ = create_node(NODE_IDENTIFIER, $1); }
+    T_ID                     {
+        // Verificar se a variável foi declarada antes do uso
+        Symbol *sym = lookup_symbol($1);
+        if (sym == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' usada, mas não declarada\n", $1);
+            yyerror("erro semântico: variável não declarada");
+        }
+        $$ = create_node(NODE_IDENTIFIER, $1);
+    }
     | T_NUMBER_INT           { 
         char num[20]; 
         sprintf(num, "%d", $1); 
@@ -533,11 +492,6 @@ expression:
         add_child(arrow, create_node(NODE_IDENTIFIER, $3));
         $$ = arrow;
         free($3);
-    }
-    | T_ID T_LPAREN T_RPAREN          { 
-        ASTNode *call = create_node(NODE_FUNCTION_CALL, $1); 
-        $$ = call;
-        free($1);
     }
     | '*' expression                  { $$ = create_unary_op("*", $2); }
     ;
