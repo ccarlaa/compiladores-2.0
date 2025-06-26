@@ -22,5 +22,8 @@ Symbol* insert_symbol(const char *c_name, const char *type, int scope);
 Symbol* lookup_symbol(const char *c_name);
 void print_symbol_table();
 void free_symbol_table();
+void enter_scope(); 
+void exit_scope();
+Symbol* lookup_symbol_in_current_scope(const char *c_name);
 
 #endif
