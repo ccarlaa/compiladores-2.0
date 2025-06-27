@@ -37,6 +37,56 @@ Symbol* lookup_symbol(const char *c_name) {
     return NULL;
 }
 
+void enter_scope() {
+    if (scope_stack_top >= MAX_SCOPE_DEPTH - 1) {
+        fprintf(stderr, "Erro: Profundidade máxima de escopo atingida.\n");
+        exit(1); // Erro fatal
+    }
+    current_scope++; // Incrementa o nível do escopo
+    scope_stack_top++;
+    scope_stack[scope_stack_top] = current_scope; // Adiciona o novo nível à pilha
+    // printf("DEBUG: Entrou no escopo %d\n", current_scope); // Para depuração
+}
+
+}
+// Sai do escopo atual
+void exit_scope() {
+    if (scope_stack_top < 0) {
+        fprintf(stderr, "Erro: Tentativa de sair de um escopo inexistente.\n");
+        exit(1); // Erro fatal
+    }
+    // Remove símbolos do escopo que está sendo fechado
+    Symbol *cur = symbol_table;
+    Symbol *prev = NULL;
+    while (cur) {
+        if (cur->scope == scope_stack[scope_stack_top]) {
+            // Este símbolo pertence ao escopo que está sendo fechado
+            if (prev) {
+                prev->next = cur->next;
+            } else {
+                symbol_table = cur->next;
+            }
+            free(cur->c_name);
+            free(cur->portugol_name);
+            free(cur->type);
+            Symbol *to_free = cur;
+            cur = cur->next;
+            free(to_free);
+        } else {
+            prev = cur;
+            cur = cur->next;
+        }
+    }
+    scope_stack_top--; // Remove o escopo da pilha
+    if (scope_stack_top >= 0) {
+        current_scope = scope_stack[scope_stack_top]; // Volta para o escopo anterior
+    } else {
+        current_scope = 0; // Voltou para o escopo global (ou nenhum escopo ativo)
+    }
+    // printf("DEBUG: Saiu do escopo. Escopo atual: %d\n", current_scope); // Para depuração
+}
+
+
 // Para visualizar a tabela de simbolos
 
 // void print_symbol_table() {
