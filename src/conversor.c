@@ -45,7 +45,7 @@ void enter_scope() {
     current_scope++; // Incrementa o nível do escopo
     scope_stack_top++;
     scope_stack[scope_stack_top] = current_scope; // Adiciona o novo nível à pilha
-    // printf("DEBUG: Entrou no escopo %d\n", current_scope); // Para depuração
+    printf("DEBUG: Entrou no escopo %d\n", current_scope); // Para depuração
 }
 
 }
@@ -83,7 +83,7 @@ void exit_scope() {
     } else {
         current_scope = 0; // Voltou para o escopo global (ou nenhum escopo ativo)
     }
-    // printf("DEBUG: Saiu do escopo. Escopo atual: %d\n", current_scope); // Para depuração
+     printf("DEBUG: Saiu do escopo. Escopo atual: %d\n", current_scope); // Para depuração
 }
 
 
