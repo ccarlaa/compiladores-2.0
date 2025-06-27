@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "conversor.h"
+#include "conversor.h" // Certifique-se de que este cabeçalho contém as declarações de escopo
 
 void yyerror(const char *s);
 int yylex(void);
@@ -67,14 +67,14 @@ void print_indent() {
 
 program:
     {
-        init_symbol_table();
+        init_symbol_table(); // Inicializa a tabela de símbolos e o escopo global (0)
         printf("programa\n{\n");
     }
     top_level_content
     {
         printf("}\n");
-        // print_symbol_table(); // Para ver a tabela de simbolos
-        free_symbol_table();
+        // print_symbol_table(); // Para ver a tabela de simbolos (descomente para debug)
+        free_symbol_table(); // Libera a memória da tabela de símbolos
     }
     ;
 
@@ -95,12 +95,17 @@ top_level_declaration:
 function_declaration:
     type_specifier T_ID T_LPAREN T_RPAREN T_LBRACE
     {
-        insert_symbol($2, $1, 0); // Funções são globais (escopo 0)
+        // Insere o nome da função na tabela de símbolos no escopo global (0)
+        if (insert_symbol($2, $1, 0) == NULL) {
+            // Erro de redeclaração já reportado por insert_symbol
+            YYERROR;
+        }
         print_indent();
-        printf("funcao inicio()\n");
+        printf("funcao inicio()\n"); // Assumindo que a única função é 'inicio()'
         print_indent();
         printf("{\n");
         indent_level++;
+        enter_scope(); // Entra no escopo da função (novo nível de escopo)
         free($1); free($2);
     }
     declarations
@@ -108,9 +113,9 @@ function_declaration:
     {
         indent_level--;
         // Removed: print_indent(); printf("// retorne 0\n");
-        indent_level--;
         print_indent();
         printf("}\n");
+        exit_scope(); // Sai do escopo da função
     }
     T_RBRACE
     ;
@@ -123,24 +128,32 @@ declarations:
 declaration:
     type_specifier declarator T_SEMICOLON
     {
+        // Insere o símbolo na tabela de símbolos no escopo atual
+        if (insert_symbol($2, $1, current_scope) == NULL) {
+            // Erro de redeclaração já reportado por insert_symbol
+            YYERROR;
+        }
         print_indent();
         // Check if the type or declarator implies a commented output (struct or pointer)
         if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
             printf("// %s%s;\n", $1, $2);
         } else {
             printf("%s %s\n", $1, $2);
-            insert_symbol($2, $1, current_scope);
         }
         free($1); free($2);
     }
     | type_specifier declarator T_ASSIGN expression T_SEMICOLON
     {
+        // Insere o símbolo na tabela de símbolos no escopo atual
+        if (insert_symbol($2, $1, current_scope) == NULL) {
+            // Erro de redeclaração já reportado por insert_symbol
+            YYERROR;
+        }
         print_indent();
         if (strstr($1, "// struct") == $1 || strstr($2, "*") != NULL) {
             printf("// %s%s = %s;\n", $1, $2, $4);
         } else {
             printf("%s %s = %s\n", $1, $2, $4);
-            insert_symbol($2, $1, current_scope);
         }
         free($1); free($2); free($4);
     }
@@ -173,24 +186,29 @@ pointer:
 direct_declarator:
     T_ID
     {
-        $$ = $1;
+        $$ = $1; // T_ID já é um strdup do lexer
     }
     ;
 
 struct_declaration:
     T_STRUCT T_ID T_LBRACE
     {
-        insert_symbol($2, "struct", current_scope);
+        // Insere o nome da struct na tabela de símbolos no escopo global (0)
+        if (insert_symbol($2, "struct", 0) == NULL) { // Structs são geralmente globais
+            YYERROR;
+        }
         print_indent();
         printf("// struct %s {\n", $2);
         free($2);
         indent_level++;
+        enter_scope(); // Entra no escopo da struct para seus membros
     }
     declarations_in_struct T_RBRACE T_SEMICOLON
     {
         indent_level--;
         print_indent();
         printf("// }\n");
+        exit_scope(); // Sai do escopo da struct
     }
     ;
 
@@ -202,6 +220,10 @@ declarations_in_struct:
 declaration_in_struct:
     type_specifier declarator T_SEMICOLON
     {
+        // Membros de struct são inseridos no escopo da struct
+        if (insert_symbol($2, $1, current_scope) == NULL) {
+            YYERROR;
+        }
         print_indent();
         // Always comment out struct members, including pointer syntax
         printf("//    %s%s;\n", $1, $2);
@@ -216,7 +238,14 @@ type_specifier:
     | T_VOID     { $$ = strdup("vazio"); }
     | T_CONST    { $$ = strdup("constante"); }
     | T_UNSIGNED { $$ = strdup("inteiro"); }
-    | T_STRUCT T_ID { asprintf(&$$, "// struct %s", $2); free($2); } /* Handles 'struct Name' as a type specifier */
+    | T_STRUCT T_ID {
+        // Verifica se a struct foi declarada antes de ser usada como tipo
+        if (lookup_symbol($2) == NULL) {
+            fprintf(stderr, "Erro semântico: Struct '%s' não declarada.\n", $2);
+            YYERROR;
+        }
+        asprintf(&$$, "// struct %s", $2); free($2);
+    } /* Handles 'struct Name' as a type specifier */
     ;
 
 statements:
@@ -251,6 +280,7 @@ do_while_statement:
         print_indent();
         printf("{\n");
         indent_level++;
+        enter_scope(); // Entra no escopo do bloco do-while
     }
     T_LBRACE statements T_RBRACE T_WHILE T_LPAREN expression T_RPAREN T_SEMICOLON
     {
@@ -258,6 +288,7 @@ do_while_statement:
         print_indent();
         printf("} enquanto (%s)\n", $8);
         free($8);
+        exit_scope(); // Sai do escopo do bloco do-while
     }
     ;
 
@@ -280,6 +311,11 @@ continue_statement:
 scanf_statement:
     T_SCANF T_LPAREN T_STRING T_COMMA T_AMPERSAND T_ID T_RPAREN T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($6) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $6);
+            YYERROR;
+        }
         print_indent();
         printf("leia(%s)\n", $6);
         free($3);
@@ -296,17 +332,21 @@ while_statement:
         print_indent();
         printf("{\n");
         indent_level++;
+        enter_scope(); // Entra no escopo do bloco while
     }
     T_LBRACE statements T_RBRACE
     {
         indent_level--;
         print_indent();
         printf("}\n");
+        exit_scope(); // Sai do escopo do bloco while
     }
     ;
 
 for_statement:
-    T_FOR T_LPAREN declaration_or_expression T_SEMICOLON expression T_SEMICOLON expression T_RPAREN
+    T_FOR T_LPAREN
+    { enter_scope(); } // Entra no escopo do for (para a variável de controle)
+    declaration_or_expression T_SEMICOLON expression T_SEMICOLON expression T_RPAREN
     {
         print_indent();
         printf("para (%s; %s; %s)\n", $3, $5, $7);
@@ -320,6 +360,7 @@ for_statement:
         indent_level--;
         print_indent();
         printf("}\n");
+        exit_scope(); // Sai do escopo do for
     }
     ;
 
@@ -333,6 +374,11 @@ declaration_or_expression:
 assignment_statement:
     T_ID T_ASSIGN expression T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s\n", $1, $3);
         asprintf(&$$, "%s = %s", $1, $3);
@@ -340,6 +386,11 @@ assignment_statement:
     }
     | T_ID T_PLUS_ASSIGN expression T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s + %s\n", $1, $1, $3);
         asprintf(&$$, "%s = %s + %s", $1, $1, $3);
@@ -347,6 +398,11 @@ assignment_statement:
     }
     | T_ID T_MINUS_ASSIGN expression T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s - %s\n", $1, $1, $3);
         asprintf(&$$, "%s = %s - %s", $1, $1, $3);
@@ -357,12 +413,22 @@ assignment_statement:
 increment_statement:
     T_ID T_INC T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s + 1\n", $1, $1);
         free($1);
     }
     | T_INC T_ID T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($2) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $2);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s + 1\n", $2, $2);
         free($2);
@@ -372,18 +438,27 @@ increment_statement:
 decrement_statement:
     T_ID T_DEC T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s - 1\n", $1, $1);
         free($1);
     }
     | T_DEC T_ID T_SEMICOLON
     {
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($2) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $2);
+            YYERROR;
+        }
         print_indent();
         printf("%s = %s - 1\n", $2, $2);
         free($2);
     }
     ;
-
 
 return_statement:
     T_RETURN expression T_SEMICOLON
@@ -403,12 +478,14 @@ if_statement:
             print_indent();
             printf("{\n");
             indent_level++;
+            enter_scope(); // Entra no escopo do bloco if
         }
     T_LBRACE statements T_RBRACE
     {
         indent_level--;
         print_indent();
         printf("}\n");
+        exit_scope(); // Sai do escopo do bloco if
     }
     elseif_chain
     ;
@@ -423,12 +500,14 @@ elseif_chain:
             print_indent();
             printf("{\n");
             indent_level++;
+            enter_scope(); // Entra no escopo do bloco else if
         }
       T_LBRACE statements T_RBRACE
         {
             indent_level--;
             print_indent();
             printf("}\n");
+            exit_scope(); // Sai do escopo do bloco else if
         }
       elseif_chain
     | T_ELSE T_LBRACE
@@ -438,12 +517,14 @@ elseif_chain:
             print_indent();
             printf("{\n");
             indent_level++;
+            enter_scope(); // Entra no escopo do bloco else
         }
       statements T_RBRACE
         {
             indent_level--;
             print_indent();
             printf("}\n");
+            exit_scope(); // Sai do escopo do bloco else
         }
     ;
 
@@ -456,12 +537,14 @@ switch_statement:
         print_indent();
         printf("{\n");
         indent_level++;
+        enter_scope(); // Entra no escopo do switch
     }
     case_list T_RBRACE
     {
         indent_level--;
         print_indent();
         printf("}\n");
+        exit_scope(); // Sai do escopo do switch
     }
     ;
 
@@ -478,6 +561,7 @@ case_statement:
         printf("caso %s:\n", $2);
         free($2);
         indent_level++;
+        // Não há enter_scope aqui, pois cases compartilham o escopo do switch
     }
     statement_list
     {
@@ -491,6 +575,7 @@ default_statement:
         print_indent();
         printf("padrao:\n");
         indent_level++;
+        // Não há enter_scope aqui, pois default compartilha o escopo do switch
     }
     statement_list
     {
@@ -506,6 +591,11 @@ statement_list:
 function_call_statement:
     T_ID T_LPAREN T_RPAREN T_SEMICOLON
     {
+        // Verifica se a função foi declarada (no escopo global)
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Função '%s' não declarada.\n", $1);
+            YYERROR;
+        }
         print_indent();
         printf("chamar %s()\n", $1);
         free($1);
@@ -514,7 +604,11 @@ function_call_statement:
 
 expression:
     T_ID                     {
-        lookup_symbol($1); /* Apenas para garantir busca, sem prints */
+        // Verifica se a variável foi declarada e está visível
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Variável '%s' não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
         $$ = $1;
     }
     | T_NUMBER_INT           { asprintf(&$$, "%d", $1); }
@@ -538,10 +632,36 @@ expression:
     | T_AMPERSAND expression          { asprintf(&$$, "&%s", $2); free($2); }
     | T_NOT expression                { asprintf(&$$, "nao %s", $2); free($2); }
     | T_LPAREN expression T_RPAREN    { asprintf(&$$, "(%s)", $2); free($2); }
-    | expression T_DOT T_ID           { asprintf(&$$, "%s.%s", $1, $3); free($1); free($3); }
-    | expression T_ARROW T_ID         { asprintf(&$$, "%s->%s", $1, $3); free($1); free($3); }
-    | T_ID T_LPAREN T_RPAREN          { asprintf(&$$, "%s()", $1); free($1); }
-    | '*' expression                  { asprintf(&$$, "*%s", $2); free($2); } // Dereference operator
+    | expression T_DOT T_ID           {
+        // Para acesso a membros de struct, você precisaria de verificação de tipo aqui
+        // e lookup do membro dentro da struct. Por simplicidade, apenas verifica o ID da struct.
+        if (lookup_symbol($1) == NULL) { // Verifica se a struct base existe
+            fprintf(stderr, "Erro semântico: Variável '%s' (struct) não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
+        asprintf(&$$, "%s.%s", $1, $3); free($1); free($3);
+    }
+    | expression T_ARROW T_ID         {
+        // Similar ao T_DOT, mas para ponteiros para struct
+        if (lookup_symbol($1) == NULL) { // Verifica se o ponteiro para struct existe
+            fprintf(stderr, "Erro semântico: Variável '%s' (ponteiro para struct) não declarada ou fora de escopo.\n", $1);
+            YYERROR;
+        }
+        asprintf(&$$, "%s->%s", $1, $3); free($1); free($3);
+    }
+    | T_ID T_LPAREN T_RPAREN          {
+        // Verifica se a função foi declarada (no escopo global)
+        if (lookup_symbol($1) == NULL) {
+            fprintf(stderr, "Erro semântico: Função '%s' não declarada.\n", $1);
+            YYERROR;
+        }
+        asprintf(&$$, "%s()", $1); free($1);
+    }
+    | '*' expression                  {
+        // Para desreferenciação de ponteiro, você precisaria de verificação de tipo aqui
+        // para garantir que 'expression' é um ponteiro.
+        asprintf(&$$, "*%s", $2); free($2);
+    } // Dereference operator
     ;
 
 printf_statement:
